@@ -64,55 +64,55 @@ Widget buildReferralCodeSection({
   return Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      // const Text(
-      //   'Referral Code (Optional)',
-      //   style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-      // ),
-      // const SizedBox(height: 4),
-      // const SizedBox(height: 4),
-      // TextFormField(
-      //   controller: textController,
-      //   initialValue: textController == null ? controller.referralCode : null,
-      //   decoration: InputDecoration(
-      //     hintText: 'ABC12',
-      //     prefixIcon: const Icon(Icons.local_offer),
-      //     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-      //     filled: true,
-      //     fillColor: Colors.grey.shade50,
-      //     suffixIcon: controller.referralValidationStatus ==
-      //             ReferralValidationStatus.loading
-      //         ? const Padding(
-      //             padding: EdgeInsets.all(12),
-      //             child: SizedBox(
-      //               width: 20,
-      //               height: 20,
-      //               child: CircularProgressIndicator(strokeWidth: 2),
-      //             ),
-      //           )
-      //         : controller.referralValidationStatus ==
-      //                 ReferralValidationStatus.valid
-      //             ? Icon(Icons.check_circle, color: Colors.green.shade600)
-      //             : controller.referralValidationStatus ==
-      //                     ReferralValidationStatus.invalid
-      //                 ? Icon(Icons.error_outline, color: Colors.red.shade400)
-      //                 : null,
-      //   ),
-      //   textCapitalization: TextCapitalization.characters,
-      //   maxLength: 5,
-      //   onChanged: controller.setReferralCode,
-      //   inputFormatters: [
-      //     FilteringTextInputFormatter.allow(RegExp(r'[A-Z0-9]')),
-      //   ],
-      // ),
-      // if (controller.referralValidationStatus ==
-      //     ReferralValidationStatus.invalid)
-      //   Padding(
-      //     padding: const EdgeInsets.only(top: 8),
-      //     child: Text(
-      //       'Invalid or unapproved referral code. Full price applies.',
-      //       style: TextStyle(color: Colors.red.shade600, fontSize: 13),
-      //     ),
-      //   ),
+      const Text(
+        'Referral Code (Optional)',
+        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+      ),
+      const SizedBox(height: 4),
+      const SizedBox(height: 4),
+      TextFormField(
+        controller: textController,
+        initialValue: textController == null ? controller.referralCode : null,
+        decoration: InputDecoration(
+          hintText: 'ABC12',
+          prefixIcon: const Icon(Icons.local_offer),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          filled: true,
+          fillColor: Colors.grey.shade50,
+          suffixIcon: controller.referralValidationStatus ==
+                  ReferralValidationStatus.loading
+              ? const Padding(
+                  padding: EdgeInsets.all(12),
+                  child: SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                )
+              : controller.referralValidationStatus ==
+                      ReferralValidationStatus.valid
+                  ? Icon(Icons.check_circle, color: Colors.green.shade600)
+                  : controller.referralValidationStatus ==
+                          ReferralValidationStatus.invalid
+                      ? Icon(Icons.error_outline, color: Colors.red.shade400)
+                      : null,
+        ),
+        textCapitalization: TextCapitalization.characters,
+        maxLength: 5,
+        onChanged: controller.setReferralCode,
+        inputFormatters: [
+          FilteringTextInputFormatter.allow(RegExp(r'[A-Z0-9]')),
+        ],
+      ),
+      if (controller.referralValidationStatus ==
+          ReferralValidationStatus.invalid)
+        Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: Text(
+            'Invalid or unapproved referral code. Full price applies.',
+            style: TextStyle(color: Colors.red.shade600, fontSize: 13),
+          ),
+        ),
     ],
   );
 }
@@ -1111,10 +1111,10 @@ class _ReceiptUploadPageState extends State<_ReceiptUploadPage> {
 
               const SizedBox(height: 24),
 
-              buildReferralCodeSection(
-                controller: controller,
-                textController: controller.referralTextController,
-              ),
+              // buildReferralCodeSection(
+              //   controller: controller,
+              //   textController: controller.referralTextController,
+              // ),
 
               const SizedBox(height: 24),
 
