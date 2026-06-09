@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:vector_academy/views/views.dart';
 import 'package:vector_academy/controllers/on_boarding/login_controller.dart';
 import 'package:vector_academy/components/components.dart';
+import 'package:vector_academy/flavors/flavor_config.dart';
 
 class Login extends StatelessWidget {
   const Login({super.key});
@@ -24,7 +25,7 @@ class Login extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 SizedBox(height: 30),
-                Image.asset('assets/images/logo.png'),
+                Image.asset(FlavorConfig.logoAsset),
                 Text(
                   'Welcome Back',
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(

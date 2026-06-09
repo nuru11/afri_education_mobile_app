@@ -39,11 +39,16 @@ app.*.symbols
 # Obfuscation related
 app.*.map.json
 
+# JVM heap dumps (accidentally generated during Gradle builds)
+*.hprof
+
 # Android Studio will place build artifacts here
 /android/app/debug
 /android/app/profile
 /android/app/release
 /android/key.properties
+/android/key_*.properties
+!/android/key_*.properties.example
 /android/app/upload-keystore*
 
 gitignore/

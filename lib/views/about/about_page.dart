@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:vector_academy/utils/navigation_utils.dart';
+import 'package:vector_academy/flavors/flavor_config.dart';
 
 class AboutPage extends StatefulWidget {
   const AboutPage({super.key});
@@ -203,9 +204,9 @@ class _AboutPageState extends State<AboutPage> {
 
           const SizedBox(height: 20),
 
-          const Text(
-            'Remedial Tricks',
-            style: TextStyle(
+          Text(
+            FlavorConfig.appTitle,
+            style: const TextStyle(
               fontSize: 28,
               fontWeight: FontWeight.w800,
               color: Colors.black87,
@@ -226,7 +227,7 @@ class _AboutPageState extends State<AboutPage> {
           const SizedBox(height: 16),
 
           Text(
-            'Remedial Tricks is a comprehensive educational platform designed to help students excel in their entrance examinations. We provide high-quality study materials, practice tests, and expert guidance to ensure your success.',
+            '${FlavorConfig.appTitle} is a comprehensive educational platform designed to help students excel in their entrance examinations. We provide high-quality study materials, practice tests, and expert guidance to ensure your success.',
             style: TextStyle(
               fontSize: 14,
               color: Colors.grey.shade700,
@@ -593,7 +594,7 @@ class _AboutPageState extends State<AboutPage> {
           const SizedBox(height: 16),
 
           Text(
-            '© ${DateTime.now().year} Remedial Tricks. All rights reserved.',
+            '© ${DateTime.now().year} ${FlavorConfig.appTitle}. All rights reserved.',
             style: TextStyle(
               fontSize: 12,
               color: Colors.grey.withValues(alpha: 0.8),

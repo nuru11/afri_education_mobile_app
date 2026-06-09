@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:vector_academy/controllers/on_boarding/verify_phone_controller.dart';
 import 'package:vector_academy/components/components.dart';
+import 'package:vector_academy/flavors/flavor_config.dart';
 
 class VerifyPhone extends StatelessWidget {
   const VerifyPhone({super.key});
@@ -27,7 +28,7 @@ class VerifyPhone extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   SizedBox(height: 50),
-                  Image.asset('assets/images/logo.png'),
+                  Image.asset(FlavorConfig.logoAsset),
                   SizedBox(height: 30),
                   Text(
                     'Enter OTP',

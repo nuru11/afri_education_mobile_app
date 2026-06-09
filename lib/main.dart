@@ -7,6 +7,7 @@ import 'package:vector_academy/services/services.dart';
 import 'package:vector_academy/components/components.dart';
 import 'package:vector_academy/utils/utils.dart';
 import 'package:vector_academy/models/models.dart';
+import 'package:vector_academy/flavors/flavor_config.dart';
 
 void main() async {
   // Remove debug banner
@@ -36,10 +37,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GetMaterialApp(
-      title: const String.fromEnvironment(
-        'APP_TITLE',
-        defaultValue: 'Remedial Tricks',
-      ),
+      title: FlavorConfig.appTitle,
       theme: lightTheme(context),
       debugShowCheckedModeBanner: true, // Remove debug banner
       getPages: [

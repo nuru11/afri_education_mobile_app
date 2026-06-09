@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:vector_academy/flavors/flavor_config.dart';
 
 class PrivacyPolicyDialog extends StatelessWidget {
   const PrivacyPolicyDialog({super.key});
@@ -73,7 +74,7 @@ class PrivacyPolicyDialog extends StatelessWidget {
                       context,
                       '2. How We Use Your Information',
                       'We use your information to:\n\n'
-                          '• Provide and maintain Remedial Tricks services\n'
+                          '• Provide and maintain ${FlavorConfig.appTitle} services\n'
                           '• Authenticate your account and prevent fraud\n'
                           '• Process your subscription payments\n'
                           '• Send study plan reminders and notifications\n'
@@ -134,7 +135,7 @@ class PrivacyPolicyDialog extends StatelessWidget {
                       context,
                       '7. Children\'s Privacy',
                       'Age Requirements:\n\n'
-                          '• Remedial Tricks is an educational platform designed for students in Grades 9-12\n'
+                          '• ${FlavorConfig.appTitle} is an educational platform designed for students in Grades 9-12\n'
                           '• Our services are intended for students aged 13 and above\n'
                           '• We do not knowingly collect information from children under 13\n'
                           '• Parents/guardians should supervise usage for younger students\n'

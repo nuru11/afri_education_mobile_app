@@ -8,11 +8,17 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
-val keystoreProperties = Properties()
-val keystorePropertiesFile = rootProject.file("key.properties")
-if (keystorePropertiesFile.exists()) {
-    keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+fun loadKeystoreProperties(fileName: String): Properties {
+    val properties = Properties()
+    val propertiesFile = rootProject.file(fileName)
+    if (propertiesFile.exists()) {
+        properties.load(FileInputStream(propertiesFile))
+    }
+    return properties
 }
+
+val vectorKeystoreProperties = loadKeystoreProperties("key.properties")
+val exitexamKeystoreProperties = loadKeystoreProperties("key_exitexam.properties")
 
 android {
     namespace = "com.vector_academy.app"
@@ -29,7 +35,6 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.vector_academy.app"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
@@ -37,13 +42,35 @@ android {
     }
 
     signingConfigs {
-        if (keystoreProperties.isNotEmpty()) {
-            create("release") {
-                keyAlias = keystoreProperties["keyAlias"] as String
-                keyPassword = keystoreProperties["keyPassword"] as String
-                storeFile = keystoreProperties["storeFile"]?.let { file(it) }
-                storePassword = keystoreProperties["storePassword"] as String
+        if (vectorKeystoreProperties.isNotEmpty()) {
+            create("vectorAcademyRelease") {
+                keyAlias = vectorKeystoreProperties["keyAlias"] as String
+                keyPassword = vectorKeystoreProperties["keyPassword"] as String
+                storeFile = vectorKeystoreProperties["storeFile"]?.let { file(it) }
+                storePassword = vectorKeystoreProperties["storePassword"] as String
             }
+        }
+        if (exitexamKeystoreProperties.isNotEmpty()) {
+            create("exitexamRelease") {
+                keyAlias = exitexamKeystoreProperties["keyAlias"] as String
+                keyPassword = exitexamKeystoreProperties["keyPassword"] as String
+                storeFile = exitexamKeystoreProperties["storeFile"]?.let { file(it) }
+                storePassword = exitexamKeystoreProperties["storePassword"] as String
+            }
+        }
+    }
+
+    flavorDimensions += "app"
+    productFlavors {
+        create("vector_academy") {
+            dimension = "app"
+            applicationId = "com.vector_academy.app"
+            resValue("string", "app_name", "Entrance Tricks")
+        }
+        create("exitexam") {
+            dimension = "app"
+            applicationId = "com.ethioexitexam.app"
+            resValue("string", "app_name", "Ethio Exit Exam")
         }
     }
 
@@ -52,13 +79,9 @@ android {
             signingConfig = signingConfigs.getByName("debug")
         }
         release {
-            signingConfig = if (signingConfigs.findByName("release") != null) {
-                signingConfigs.getByName("release")
-            } else {
-                signingConfigs.getByName("debug")
-            }
             isMinifyEnabled = false
             isShrinkResources = false
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
 }
