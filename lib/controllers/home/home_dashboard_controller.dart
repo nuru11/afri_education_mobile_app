@@ -211,8 +211,9 @@ class HomeDashboardController extends GetxController {
 
     try {
       final device = await UserDevice.getDeviceInfo(_user?.phoneNumber ?? '');
+      final gradeId = _user?.grade.id ?? 0;
 
-      _subjects = await SubjectsService().getSubjects(device.id, gradeId: 1);
+      _subjects = await SubjectsService().getSubjects(device.id, gradeId: gradeId);
       logger.i(_subjects.map((e) => e.isLocked).toList()[0]);
     } catch (e) {
       Get.snackbar('Error', 'Failed to load dashboard data');

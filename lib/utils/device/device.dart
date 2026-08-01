@@ -2,6 +2,8 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'package:crypto/crypto.dart';
 import 'dart:io';
 
+import 'package:vector_academy/utils/constants/constants.dart';
+
 class DeviceInfo {
   String id;
   String brand;
@@ -101,24 +103,25 @@ class UserDevice {
   }
 
   static Future<String> _deviceId(String phoneNumber) async {
+    final package = backendAppPackage;
     if (Platform.isAndroid) {
       final androidInfo = await deviceInfo.androidInfo;
 
-      return "${androidInfo.brand} ${androidInfo.model} ${androidInfo.manufacturer} ${androidInfo.board} ${androidInfo.device} ${androidInfo.name} ${androidInfo.id} $phoneNumber";
+      return "$package ${androidInfo.brand} ${androidInfo.model} ${androidInfo.manufacturer} ${androidInfo.board} ${androidInfo.device} ${androidInfo.name} ${androidInfo.id} $phoneNumber";
     } else if (Platform.isIOS) {
       final iosInfo = await deviceInfo.iosInfo;
-      return "${iosInfo.model} ${iosInfo.name} ${iosInfo.systemVersion}";
+      return "$package ${iosInfo.model} ${iosInfo.name} ${iosInfo.systemVersion}";
     } else if (Platform.isWindows) {
       final windowsInfo = await deviceInfo.windowsInfo;
-      return "${windowsInfo.numberOfCores} ${windowsInfo.productId} ${windowsInfo.deviceId}";
+      return "$package ${windowsInfo.numberOfCores} ${windowsInfo.productId} ${windowsInfo.deviceId}";
     } else if (Platform.isMacOS) {
       final macosInfo = await deviceInfo.macOsInfo;
-      return "${macosInfo.model} ${macosInfo.modelName} ${macosInfo.arch}";
+      return "$package ${macosInfo.model} ${macosInfo.modelName} ${macosInfo.arch}";
     } else if (Platform.isLinux) {
       final linuxInfo = await deviceInfo.linuxInfo;
-      return "${linuxInfo.name} ${linuxInfo.version} ${linuxInfo.id}";
+      return "$package ${linuxInfo.name} ${linuxInfo.version} ${linuxInfo.id}";
     }
-    return '1.0.0';
+    return '$package:1.0.0';
   }
 
   static Future<String> deviceHash(String phoneNumber) async {
