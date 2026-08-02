@@ -789,7 +789,7 @@ class QuestionPage extends StatelessWidget {
           child: Obx(
             () => Text(
               controller.showingNoteInterstitial.value
-                  ? 'Note'
+                  ? 'Direction'
                   : '${controller.currentQuestionIndex.value + 1} / ${controller.questions.length}',
               style: theme.textTheme.labelMedium?.copyWith(
                 color: theme.colorScheme.onSecondaryContainer,
@@ -823,7 +823,7 @@ class QuestionPage extends StatelessWidget {
 
             SizedBox(width: 16),
 
-            // Next/Submit button
+            // Next/Submit/Done button
             Expanded(
               child: Obx(() {
                 final onNoteScreen = controller.showingNoteInterstitial.value;
@@ -831,15 +831,33 @@ class QuestionPage extends StatelessWidget {
                     !onNoteScreen &&
                     controller.currentQuestionIndex.value ==
                         controller.questions.length - 1;
+                final isReviewMode = controller.showAnswers.value;
                 final canProceed = controller.canMoveToNext;
-                final isSubmitting = controller.isSubmitting.value;
+                final isSubmitting =
+                    !isReviewMode && controller.isSubmitting.value;
+
+                VoidCallback? onPressed;
+                if (canProceed && !isSubmitting) {
+                  if (isLastQuestion) {
+                    onPressed = isReviewMode
+                        ? controller.finishQuiz
+                        : controller.submitQuiz;
+                  } else {
+                    onPressed = controller.nextQuestion;
+                  }
+                }
+
+                final String label;
+                if (isSubmitting) {
+                  label = 'Submitting...';
+                } else if (isLastQuestion) {
+                  label = isReviewMode ? 'Done' : 'Submit';
+                } else {
+                  label = 'Next';
+                }
 
                 return ElevatedButton.icon(
-                  onPressed: canProceed && !isSubmitting
-                      ? (isLastQuestion
-                            ? controller.submitQuiz
-                            : controller.nextQuestion)
-                      : null,
+                  onPressed: onPressed,
                   icon: isSubmitting
                       ? SizedBox(
                           width: 16,
@@ -854,11 +872,7 @@ class QuestionPage extends StatelessWidget {
                       : Icon(
                           isLastQuestion ? Icons.check : Icons.arrow_forward,
                         ),
-                  label: Text(
-                    isSubmitting
-                        ? 'Submitting...'
-                        : (isLastQuestion ? 'Submit' : 'Next'),
-                  ),
+                  label: Text(label),
                   style: ElevatedButton.styleFrom(
                     padding: EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
