@@ -13,8 +13,8 @@ class ImagePickerPermissions {
   static Future<bool> ensurePermission(ImageSource source) async {
     if (kIsWeb) return true;
 
-    // iOS 14+ uses PHPicker for gallery; no prior photo permission needed.
-    if (Platform.isIOS && source == ImageSource.gallery) return true;
+    // Gallery uses system pickers (PHPicker / Android Photo Picker); no prior permission.
+    if (source == ImageSource.gallery) return true;
 
     final permission = _permissionForSource(source);
     if (permission == null) return true;

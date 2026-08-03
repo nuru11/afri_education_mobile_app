@@ -81,7 +81,11 @@ android {
         release {
             isMinifyEnabled = false
             isShrinkResources = false
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = if (vectorKeystoreProperties.isNotEmpty()) {
+                signingConfigs.getByName("vectorAcademyRelease")
+            } else {
+                signingConfigs.getByName("debug")
+            }
         }
     }
 }

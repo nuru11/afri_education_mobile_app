@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:vector_academy/controllers/controllers.dart';
+import 'package:vector_academy/models/models.dart';
 import 'package:vector_academy/utils/navigation_utils.dart';
 
 class AddPlanPage extends StatelessWidget {
@@ -85,22 +86,8 @@ class _AddPlanForm extends StatelessWidget {
                 ),
                 SizedBox(height: 20),
 
-                // Subject Field
-                TextFormField(
-                  controller: controller.subjectController,
-                  enabled: !controller.isSubmitting,
-                  decoration: InputDecoration(
-                    labelText: 'Subject',
-                    hintText: 'e.g., Mathematics',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    filled: true,
-                    fillColor: Colors.white,
-                    prefixIcon: Icon(Icons.book_rounded),
-                  ),
-                  textCapitalization: TextCapitalization.words,
-                ),
+                // Courses Dropdown
+                _CoursesDropdown(controller: controller),
                 SizedBox(height: 30),
 
                 // Date and Time Section
@@ -186,6 +173,46 @@ class _AddPlanForm extends StatelessWidget {
                     ),
                   ),
                 ),
+                SizedBox(height: 16),
+
+                // Local / Foreign time toggle
+                Text(
+                  'Time format',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                  ),
+                ),
+                SizedBox(height: 8),
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey[300]!),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: _TimeModeChip(
+                          label: 'Local time',
+                          subtitle: 'Ethiopian',
+                          selected: controller.useLocalTime,
+                          enabled: !controller.isSubmitting,
+                          onTap: () => controller.setUseLocalTime(true),
+                        ),
+                      ),
+                      Expanded(
+                        child: _TimeModeChip(
+                          label: 'Foreign time',
+                          subtitle: 'Western',
+                          selected: !controller.useLocalTime,
+                          enabled: !controller.isSubmitting,
+                          onTap: () => controller.setUseLocalTime(false),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
                 SizedBox(height: 12),
 
                 // Start Time Picker
@@ -222,7 +249,7 @@ class _AddPlanForm extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Start Time *',
+                                  'Start Time (${controller.timeModeLabel}) *',
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: Colors.grey[600],
@@ -230,11 +257,7 @@ class _AddPlanForm extends StatelessWidget {
                                 ),
                                 SizedBox(height: 4),
                                 Text(
-                                  controller.startTime != null
-                                      ? '${controller.startTime!.hour.toString().padLeft(2, '0')}:${controller.startTime!.minute.toString().padLeft(2, '0')}'
-                                      : controller.selectedDate != null
-                                      ? 'Required'
-                                      : 'No start time set',
+                                  controller.formatStartTimeDisplay(),
                                   style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w600,
@@ -290,7 +313,7 @@ class _AddPlanForm extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'End Time *',
+                                  'End Time (${controller.timeModeLabel}) *',
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: Colors.grey[600],
@@ -298,11 +321,7 @@ class _AddPlanForm extends StatelessWidget {
                                 ),
                                 SizedBox(height: 4),
                                 Text(
-                                  controller.endTime != null
-                                      ? '${controller.endTime!.hour.toString().padLeft(2, '0')}:${controller.endTime!.minute.toString().padLeft(2, '0')}'
-                                      : controller.selectedDate != null
-                                      ? 'Required'
-                                      : 'No end time set',
+                                  controller.formatEndTimeDisplay(),
                                   style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w600,
@@ -461,6 +480,132 @@ class _AddPlanForm extends StatelessWidget {
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CoursesDropdown extends StatelessWidget {
+  final AddPlanController controller;
+
+  const _CoursesDropdown({required this.controller});
+
+  @override
+  Widget build(BuildContext context) {
+    if (controller.isLoadingCourses && controller.courses.isEmpty) {
+      return InputDecorator(
+        decoration: InputDecoration(
+          labelText: 'Courses',
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          filled: true,
+          fillColor: Colors.white,
+          prefixIcon: Icon(Icons.book_rounded),
+        ),
+        child: SizedBox(
+          height: 24,
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+          ),
+        ),
+      );
+    }
+
+    final items = <DropdownMenuItem<Subject>>[
+      ...controller.courses.map(
+        (course) => DropdownMenuItem<Subject>(
+          value: course,
+          child: Text(course.name, overflow: TextOverflow.ellipsis),
+        ),
+      ),
+    ];
+
+    // Legacy free-text subject that isn't in the courses list
+    final hasLegacy =
+        controller.legacySubjectName != null &&
+        controller.legacySubjectName!.isNotEmpty &&
+        controller.selectedCourse == null;
+
+    return DropdownButtonFormField<Subject>(
+      value: controller.selectedCourseForDropdown,
+      items: items,
+      onChanged: controller.isSubmitting || controller.courses.isEmpty
+          ? null
+          : controller.selectCourse,
+      decoration: InputDecoration(
+        labelText: 'Courses',
+        hintText: controller.courses.isEmpty
+            ? 'No courses available'
+            : hasLegacy
+            ? controller.legacySubjectName
+            : 'Select a course',
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        filled: true,
+        fillColor: Colors.white,
+        prefixIcon: Icon(Icons.book_rounded),
+      ),
+      isExpanded: true,
+    );
+  }
+}
+
+class _TimeModeChip extends StatelessWidget {
+  final String label;
+  final String subtitle;
+  final bool selected;
+  final bool enabled;
+  final VoidCallback onTap;
+
+  const _TimeModeChip({
+    required this.label,
+    required this.subtitle,
+    required this.selected,
+    required this.enabled,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: enabled ? onTap : null,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+        decoration: BoxDecoration(
+          color: selected ? Colors.blue[50] : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+          border: selected
+              ? Border.all(color: Colors.blue[600]!, width: 1.5)
+              : Border.all(color: Colors.transparent),
+        ),
+        child: Column(
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: selected ? Colors.blue[700] : Colors.grey[700],
+              ),
+            ),
+            SizedBox(height: 2),
+            Text(
+              subtitle,
+              style: TextStyle(
+                fontSize: 11,
+                color: selected ? Colors.blue[600] : Colors.grey[500],
+              ),
+            ),
+          ],
         ),
       ),
     );
