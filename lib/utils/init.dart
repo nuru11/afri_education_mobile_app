@@ -1,4 +1,3 @@
-import 'package:vector_academy/services/api/api.dart';
 import 'package:vector_academy/utils/storages/storages.dart';
 import 'package:vector_academy/utils/storages/app_header.dart';
 import 'package:vector_academy/utils/utils.dart';
@@ -26,7 +25,11 @@ Future<void> initialize() async {
   await HiveAppHeaderStorage().init();
   await HiveNewsStorage().init();
   await HiveLeaderboardCacheStorage().init();
-  Get.put(AuthService());
+  await Get.putAsync(() async {
+    final auth = AuthService();
+    await auth.loadUser();
+    return auth;
+  });
   Get.put(CoreService());
   Get.put(GradeService());
 
@@ -34,10 +37,6 @@ Future<void> initialize() async {
 
   // Register notification service (permissions requested in-context from Study Planner)
   Get.put(local_notif.LocalNotificationService());
-
-  final authToken = await HiveAuthStorage().getAuthToken();
-
-  BaseApiClient.setTokens(authToken?.access ?? '', authToken?.refresh ?? '');
 
   logger.i('Initilizing The application');
 }
