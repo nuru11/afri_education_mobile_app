@@ -175,46 +175,6 @@ class _AddPlanForm extends StatelessWidget {
                 ),
                 SizedBox(height: 16),
 
-                // Local / Foreign time toggle
-                Text(
-                  'Time format',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                  ),
-                ),
-                SizedBox(height: 8),
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey[300]!),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: _TimeModeChip(
-                          label: 'Local time',
-                          subtitle: 'Ethiopian',
-                          selected: controller.useLocalTime,
-                          enabled: !controller.isSubmitting,
-                          onTap: () => controller.setUseLocalTime(true),
-                        ),
-                      ),
-                      Expanded(
-                        child: _TimeModeChip(
-                          label: 'Foreign time',
-                          subtitle: 'Western',
-                          selected: !controller.useLocalTime,
-                          enabled: !controller.isSubmitting,
-                          onTap: () => controller.setUseLocalTime(false),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                SizedBox(height: 12),
-
                 // Start Time Picker
                 InkWell(
                   onTap: controller.isSubmitting
@@ -249,7 +209,7 @@ class _AddPlanForm extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Start Time (${controller.timeModeLabel}) *',
+                                  'Start Time *',
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: Colors.grey[600],
@@ -313,7 +273,7 @@ class _AddPlanForm extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'End Time (${controller.timeModeLabel}) *',
+                                  'End Time *',
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: Colors.grey[600],
@@ -554,60 +514,6 @@ class _CoursesDropdown extends StatelessWidget {
         prefixIcon: Icon(Icons.book_rounded),
       ),
       isExpanded: true,
-    );
-  }
-}
-
-class _TimeModeChip extends StatelessWidget {
-  final String label;
-  final String subtitle;
-  final bool selected;
-  final bool enabled;
-  final VoidCallback onTap;
-
-  const _TimeModeChip({
-    required this.label,
-    required this.subtitle,
-    required this.selected,
-    required this.enabled,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: enabled ? onTap : null,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-        decoration: BoxDecoration(
-          color: selected ? Colors.blue[50] : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
-          border: selected
-              ? Border.all(color: Colors.blue[600]!, width: 1.5)
-              : Border.all(color: Colors.transparent),
-        ),
-        child: Column(
-          children: [
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: selected ? Colors.blue[700] : Colors.grey[700],
-              ),
-            ),
-            SizedBox(height: 2),
-            Text(
-              subtitle,
-              style: TextStyle(
-                fontSize: 11,
-                color: selected ? Colors.blue[600] : Colors.grey[500],
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:vector_academy/controllers/controllers.dart';
 import 'package:vector_academy/models/models.dart';
+import 'package:vector_academy/utils/utils.dart';
 
 class StudyPlannerPage extends StatelessWidget {
   const StudyPlannerPage({super.key});
@@ -574,11 +575,8 @@ class StudyPlannerPage extends StatelessWidget {
     final dueDate = plan.dueDate;
 
     if (startDate != null && endDate != null) {
-      // Show time range: "09:00 - 10:00" or "Today, 09:00 - 10:00"
-      final startTime =
-          '${startDate.hour.toString().padLeft(2, '0')}:${startDate.minute.toString().padLeft(2, '0')}';
-      final endTime =
-          '${endDate.hour.toString().padLeft(2, '0')}:${endDate.minute.toString().padLeft(2, '0')}';
+      final startTime = EthiopianTime.formatWesternDateTimeClock(startDate);
+      final endTime = EthiopianTime.formatWesternDateTimeClock(endDate);
 
       final now = DateTime.now();
       final today = DateTime(now.year, now.month, now.day);
@@ -634,13 +632,14 @@ class StudyPlannerPage extends StatelessWidget {
       'Sunday',
     ];
     final dayOfWeek = daysOfWeek[dateTime.weekday - 1];
+    final time = EthiopianTime.formatWesternDateTimeClock(dateTime);
 
     if (date == today) {
-      return 'Today, $dayOfWeek ${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
+      return 'Today, $dayOfWeek $time';
     } else if (date == today.add(Duration(days: 1))) {
-      return 'Tomorrow, $dayOfWeek ${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
+      return 'Tomorrow, $dayOfWeek $time';
     } else {
-      return '$dayOfWeek, ${dateTime.day}/${dateTime.month}/${dateTime.year} ${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
+      return '$dayOfWeek, ${dateTime.day}/${dateTime.month}/${dateTime.year} $time';
     }
   }
 
