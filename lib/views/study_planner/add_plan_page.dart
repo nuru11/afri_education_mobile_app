@@ -101,80 +101,6 @@ class _AddPlanForm extends StatelessWidget {
                 ),
                 SizedBox(height: 16),
 
-                // Date Picker
-                InkWell(
-                  onTap: controller.isSubmitting
-                      ? null
-                      : () => controller.selectDate(context),
-                  child: Opacity(
-                    opacity: controller.isSubmitting ? 0.6 : 1.0,
-                    child: Container(
-                      padding: EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey[300]!),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            padding: EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: Colors.blue[50],
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Icon(
-                              Icons.calendar_today_rounded,
-                              color: Colors.blue[600],
-                              size: 24,
-                            ),
-                          ),
-                          SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Date (Optional)',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey[600],
-                                  ),
-                                ),
-                                SizedBox(height: 4),
-                                Text(
-                                  controller.selectedDate != null
-                                      ? '${controller.getDayOfWeek(controller.selectedDate!)}, ${controller.selectedDate!.day}/${controller.selectedDate!.month}/${controller.selectedDate!.year}'
-                                      : 'No date set',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                    color: controller.selectedDate != null
-                                        ? Colors.grey[800]
-                                        : Colors.grey[400],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          if (controller.selectedDate != null)
-                            IconButton(
-                              icon: Icon(Icons.close, size: 20),
-                              color: Colors.grey[400],
-                              onPressed: controller.isSubmitting
-                                  ? null
-                                  : controller.clearDate,
-                              padding: EdgeInsets.zero,
-                              constraints: BoxConstraints(),
-                            ),
-                          Icon(Icons.chevron_right, color: Colors.grey[400]),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                SizedBox(height: 16),
-
                 // Start Time Picker
                 InkWell(
                   onTap: controller.isSubmitting
@@ -223,8 +149,6 @@ class _AddPlanForm extends StatelessWidget {
                                     fontWeight: FontWeight.w600,
                                     color: controller.startTime != null
                                         ? Colors.grey[800]
-                                        : controller.selectedDate != null
-                                        ? Colors.red[400]
                                         : Colors.grey[400],
                                   ),
                                 ),
@@ -287,8 +211,6 @@ class _AddPlanForm extends StatelessWidget {
                                     fontWeight: FontWeight.w600,
                                     color: controller.endTime != null
                                         ? Colors.grey[800]
-                                        : controller.selectedDate != null
-                                        ? Colors.red[400]
                                         : Colors.grey[400],
                                   ),
                                 ),
