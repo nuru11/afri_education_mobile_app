@@ -7,6 +7,7 @@ import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:vector_academy/models/models.dart';
 import 'package:vector_academy/services/services.dart';
+import 'package:vector_academy/services/api/device.dart';
 import 'package:vector_academy/services/api/exceptions.dart';
 import 'package:vector_academy/utils/utils.dart';
 import 'package:vector_academy/utils/storages/storages.dart';
@@ -127,11 +128,63 @@ class PaymentController extends GetxController {
     }
   }
 
+  Future<DeviceInfo> _ensureDeviceRegistered() async {
+    final phone = _user?.phoneNumber ?? '';
+    try {
+      // registerDevice remints once on ownership conflict.
+      await DeviceService().registerDevice(phone);
+    } catch (e) {
+      logger.w('Device re-registration before payment failed: $e');
+    }
+    return UserDevice.getDeviceInfo(phone);
+  }
+
+  Future<void> _uploadReceiptWithDeviceConflictRetry({
+    required File receiptFile,
+    required int packageId,
+    required double paymentAmount,
+    required String? referralCode,
+    required DeviceInfo device,
+  }) async {
+    try {
+      await _paymentService.uploadReceipt(
+        file: receiptFile,
+        package: packageId,
+        paymentMethod: selectedPaymentMethod!.id,
+        amount: paymentAmount,
+        device: device.id,
+        referralCode: referralCode,
+      );
+    } catch (e) {
+      if (!DeviceService.isOwnedByAnotherUser(e)) rethrow;
+
+      final phone = _user?.phoneNumber ?? '';
+      logger.w(
+        'Receipt upload device conflict; reminting and retrying once: $e',
+      );
+      await UserDevice.remintDeviceId(phone);
+      try {
+        await DeviceService().registerDevice(phone);
+      } catch (regError) {
+        logger.w('Device register after remint failed: $regError');
+      }
+      final retryDevice = await UserDevice.getDeviceInfo(phone);
+      await _paymentService.uploadReceipt(
+        file: receiptFile,
+        package: packageId,
+        paymentMethod: selectedPaymentMethod!.id,
+        amount: paymentAmount,
+        device: retryDevice.id,
+        referralCode: referralCode,
+      );
+    }
+  }
+
   Future<void> loadUserPayments() async {
     try {
       isLoadingPayments = true;
       update();
-      final device = await UserDevice.getDeviceInfo(_user?.phoneNumber ?? '');
+      final device = await _ensureDeviceRegistered();
       final userPayments_ = await _paymentService.getUserPayments(device.id);
       userPayments = userPayments_;
     } catch (e) {
@@ -188,7 +241,7 @@ class PaymentController extends GetxController {
     try {
       isLoading = true;
       update();
-      final device = await UserDevice.getDeviceInfo(_user?.phoneNumber ?? '');
+      final device = await _ensureDeviceRegistered();
       final grade = _user?.grade;
       final packages_ = await _paymentService.getPackages(
         device.id,
@@ -264,15 +317,23 @@ class PaymentController extends GetxController {
     try {
       isCreatingPayment = true;
       update();
-      final device = await UserDevice.getDeviceInfo(_user?.phoneNumber ?? '');
+      final device = await _ensureDeviceRegistered();
+      if (device.id.trim().isEmpty) {
+        Get.snackbar(
+          'Error',
+          'Could not identify this device. Please restart the app and try again.',
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+        return false;
+      }
       final receiptFile = selectedReceiptImage!;
-      await _paymentService.uploadReceipt(
-        file: receiptFile,
-        package: packageId,
-        paymentMethod: selectedPaymentMethod!.id,
-        amount: paymentAmount,
-        device: device.id,
+      await _uploadReceiptWithDeviceConflictRetry(
+        receiptFile: receiptFile,
+        packageId: packageId,
+        paymentAmount: paymentAmount,
         referralCode: referralCode,
+        device: device,
       );
 
       Get.snackbar(

@@ -115,10 +115,17 @@ class PaymentService extends GetxController {
     required double amount,
     String? referralCode,
   }) async {
+    final deviceId = device.trim();
+    if (deviceId.isEmpty) {
+      throw ApiException(
+        'Device ID is missing. Please restart the app and try again.',
+      );
+    }
+
     final additionalData = <String, dynamic>{
       'package': package,
       'method': paymentMethod,
-      'device': device,
+      'device': deviceId,
       'amount': amount,
     };
     
@@ -140,7 +147,9 @@ class PaymentService extends GetxController {
     }
     logger.e(response.data);
 
-    throw ApiException('Failed to upload receipt');
+    throw ApiException(
+      ApiErrorMessage.fromData(response.data) ?? 'Failed to upload receipt',
+    );
   }
 
   // Get all available packages
