@@ -33,6 +33,7 @@ class UserDevice {
   static const AndroidId _androidIdPlugin = AndroidId();
 
   static DeviceInfo? _cached;
+  static String? _cachedForPhone;
 
   static const String _unknown = 'unknown';
 
@@ -53,7 +54,7 @@ class UserDevice {
   /// 1) Hive (survives OS updates once written)
   /// 2) Platform-specific new id (see [_resolveNewDeviceId])
   static Future<DeviceInfo> getDeviceInfo(String phoneNumber) async {
-    if (_cached != null) {
+    if (_cached != null && _cachedForPhone == phoneNumber) {
       return _cached!;
     }
 
@@ -63,8 +64,7 @@ class UserDevice {
     late final String resolvedId;
 
     if (storedId != null && storedId.isNotEmpty) {
-      // Never re-hash Build fields once we have a persisted id.
-      resolvedId = storedId;
+      resolvedId = await _maybeMigrateStoredId(storedId, phoneNumber);
     } else {
       resolvedId = await _resolveNewDeviceId(phoneNumber);
       await _storage.setDeviceId(resolvedId);
@@ -81,25 +81,43 @@ class UserDevice {
     );
 
     _cached = info;
+    _cachedForPhone = phoneNumber;
     return info;
   }
 
+  /// On iOS, replace colliding legacy name/model/OS hashes with phone-scoped IDFV.
+  static Future<String> _maybeMigrateStoredId(
+    String storedId,
+    String phoneNumber,
+  ) async {
+    if (!Platform.isIOS) {
+      return storedId;
+    }
+
+    try {
+      final legacy = await deviceHash(phoneNumber);
+      if (storedId == legacy) {
+        final migrated = await _resolveNewDeviceId(phoneNumber);
+        await _storage.setDeviceId(migrated);
+        logger.i('Migrated legacy iOS device id to phone-scoped IDFV');
+        return migrated;
+      }
+    } catch (e, st) {
+      logger.w('Legacy iOS device id migration failed: $e\n$st');
+    }
+    return storedId;
+  }
+
   /// Clears persisted/cached id and mints a new unique one (collision recovery).
+  /// Always uses a secure random id — never IDFV/legacy — so a taken IDFV cannot
+  /// be re-selected on the same phone.
   static Future<DeviceInfo> remintDeviceId(String phoneNumber) async {
-    final previousId = _cached?.id ?? await _storage.getDeviceId();
     _cached = null;
+    _cachedForPhone = null;
     await _storage.clear();
 
     final metadata = await _readMetadataOnly();
-    var resolvedId = await _resolveNewDeviceId(
-      phoneNumber,
-      excludeId: previousId,
-    );
-    if (previousId != null &&
-        previousId.isNotEmpty &&
-        resolvedId == previousId) {
-      resolvedId = _generateFallbackId(phoneNumber);
-    }
+    final resolvedId = _generateFallbackId(phoneNumber);
     await _storage.setDeviceId(resolvedId);
 
     final info = DeviceInfo(
@@ -112,12 +130,13 @@ class UserDevice {
       os: metadata.os,
     );
     _cached = info;
+    _cachedForPhone = phoneNumber;
     logger.i('Reminted device id (previous was conflicting)');
     return info;
   }
 
   /// Android: legacy hash first (keeps paid unlocks), then ANDROID_ID, then random.
-  /// iOS: IDFV first (legacy name/model/OS hash collides across phones), then random.
+  /// iOS: phone-scoped IDFV first (legacy name/model/OS hash collides across phones).
   static Future<String> _resolveNewDeviceId(
     String phoneNumber, {
     String? excludeId,
@@ -138,7 +157,7 @@ class UserDevice {
 
     if (Platform.isIOS) {
       final fromIdfv = await tryId(() async {
-        final stable = await _stablePlatformId();
+        final stable = await _stablePlatformId(phoneNumber);
         if (stable == null || stable.isEmpty) return null;
         return _hash(stable);
       });
@@ -155,7 +174,7 @@ class UserDevice {
     if (fromLegacy != null) return fromLegacy;
 
     final fromStable = await tryId(() async {
-      final stable = await _stablePlatformId();
+      final stable = await _stablePlatformId(phoneNumber);
       if (stable == null || stable.isEmpty) return null;
       return _hash(stable);
     });
@@ -164,9 +183,10 @@ class UserDevice {
     return _generateFallbackId(phoneNumber);
   }
 
-  /// ANDROID_ID (Android) / identifierForVendor (iOS) — survive OS updates.
+  /// ANDROID_ID (Android) / identifierForVendor+phone (iOS) — survive OS updates.
   /// Prefixed with [backendAppPackage] so each product app gets a distinct id.
-  static Future<String?> _stablePlatformId() async {
+  /// iOS includes phone so two accounts on one device do not share a device_id.
+  static Future<String?> _stablePlatformId(String phoneNumber) async {
     if (Platform.isAndroid) {
       final id = await _androidIdPlugin.getId();
       if (id != null && id.trim().isNotEmpty) {
@@ -178,7 +198,7 @@ class UserDevice {
       final iosInfo = await deviceInfo.iosInfo;
       final idfv = iosInfo.identifierForVendor;
       if (idfv != null && idfv.trim().isNotEmpty) {
-        return '${backendAppPackage}:${idfv.trim()}';
+        return '${backendAppPackage}:${idfv.trim()}:${phoneNumber.trim()}';
       }
       return null;
     }
@@ -265,7 +285,8 @@ class UserDevice {
     );
   }
 
-  /// Legacy fingerprint — only used when Hive has no id yet.
+  /// Legacy fingerprint — only used when Hive has no id yet (Android), or to
+  /// detect stale iOS Hive values for migration.
   static Future<String> _legacyRawDeviceId(String phoneNumber) async {
     final package = backendAppPackage;
     if (Platform.isAndroid) {
