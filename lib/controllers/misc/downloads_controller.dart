@@ -449,7 +449,7 @@ class DownloadsController extends GetxController {
     }
 
     if (note.isDownloading || activeNoteDownloads.containsKey(note.id)) {
-      Get.snackbar('Info', 'This note is already opening');
+      Get.snackbar('Info', 'This note is already downloading');
       return false;
     }
 
@@ -500,7 +500,7 @@ class DownloadsController extends GetxController {
           onNoteError?.call(note.id);
           update();
 
-          Get.snackbar('Error', 'Could not open note');
+          Get.snackbar('Error', 'Could not download note');
         },
       );
       return succeeded && hasDownloadedNoteFile(note);
@@ -513,13 +513,36 @@ class DownloadsController extends GetxController {
       onNoteError?.call(note.id);
       update();
 
-      Get.snackbar('Error', 'Could not open note');
+      Get.snackbar('Error', 'Could not download note');
       return false;
     }
   }
 
   Future<void> downloadNote(Note note) async {
-    await openNote(note);
+    if (isNoteLocked(note)) {
+      Get.snackbar(
+        'Locked Content',
+        'Subscribe to this subject to access all sections.',
+        backgroundColor: Colors.orange,
+        colorText: Colors.white,
+      );
+      return;
+    }
+
+    if (note.isDownloaded && hasDownloadedNoteFile(note)) {
+      Get.snackbar('Info', 'Note is already downloaded');
+      return;
+    }
+
+    final cached = await ensureNoteCached(note);
+    if (cached) {
+      Get.snackbar(
+        'Success',
+        'Note downloaded successfully',
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+      );
+    }
   }
 
   // Download exam (download questions)
@@ -606,6 +629,17 @@ class DownloadsController extends GetxController {
         'Subscribe to this subject to access all sections.',
         backgroundColor: Colors.orange,
         colorText: Colors.white,
+      );
+      return;
+    }
+
+    if (!note.isDownloaded || !hasDownloadedNoteFile(note)) {
+      Get.snackbar(
+        'Note Not Available',
+        'This note needs to be downloaded first',
+        backgroundColor: Colors.orange,
+        colorText: Colors.white,
+        duration: const Duration(seconds: 3),
       );
       return;
     }
