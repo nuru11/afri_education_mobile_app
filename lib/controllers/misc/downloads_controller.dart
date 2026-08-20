@@ -439,12 +439,15 @@ class DownloadsController extends GetxController {
           note.id,
           storedPath: note.filePath,
         )) {
-      if (!note.isDownloaded) {
-        note.isDownloaded = true;
-        note.filePath ??= await NoteFileCache.instance.cacheFilePath(note.id);
-        _mirrorNoteState(note);
-        update();
+      note.isDownloaded = true;
+      final canonical = await NoteFileCache.instance.cacheFilePath(note.id);
+      if (File(canonical).existsSync()) {
+        note.filePath = canonical;
+      } else {
+        note.filePath ??= canonical;
       }
+      _mirrorNoteState(note);
+      update();
       return true;
     }
 
@@ -605,8 +608,9 @@ class DownloadsController extends GetxController {
   }
 
   // Play/Open video
-  void playVideo(Video video) {
-    if (!video.isDownloaded || video.filePath == null) {
+  Future<void> playVideo(Video video) async {
+    await hydrateVideoDownloadState(video);
+    if (!hasDownloadedVideoFile(video)) {
       Get.snackbar('Error', 'Video not downloaded');
       return;
     }
@@ -633,7 +637,8 @@ class DownloadsController extends GetxController {
       return;
     }
 
-    if (!note.isDownloaded || !hasDownloadedNoteFile(note)) {
+    await hydrateNoteDownloadState(note);
+    if (!hasDownloadedNoteFile(note)) {
       Get.snackbar(
         'Note Not Available',
         'This note needs to be downloaded first',
@@ -648,10 +653,6 @@ class DownloadsController extends GetxController {
     if (!cached) return;
 
     try {
-      final viewPath = await NoteFileCache.instance.prepareViewFile(
-        note.id,
-        storedPath: note.filePath,
-      );
       final canonical = await NoteFileCache.instance.cacheFilePath(note.id);
       if (note.filePath != canonical && File(canonical).existsSync()) {
         note.filePath = canonical;
@@ -661,9 +662,14 @@ class DownloadsController extends GetxController {
         update();
       }
 
+      final sourcePath =
+          (note.filePath != null && note.filePath!.isNotEmpty)
+              ? note.filePath!
+              : canonical;
+
       Get.to(
         () => PDFReaderScreen(
-          pdfUrl: viewPath,
+          pdfUrl: sourcePath,
           pdfTitle: note.title,
           pdfId: note.id,
           protectContent: true,
