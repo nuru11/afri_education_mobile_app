@@ -92,7 +92,7 @@ class ChapterDetailController extends GetxController {
   void _showLockedContentMessage() {
     Get.snackbar(
       'Locked Content',
-      'Subscribe to this subject to access all chapters.',
+      'Subscribe to this subject to access all Sections.',
       backgroundColor: Colors.orange,
       colorText: Colors.white,
     );
@@ -106,13 +106,18 @@ class ChapterDetailController extends GetxController {
 
     final canAccessChapter = await _canAccessCurrentChapter();
     if (!canAccessChapter) {
+      final checkoutArgs = {'subjectId': subjectId};
+      if (!requireAuthForPurchase(checkoutArgs: checkoutArgs, replace: true)) {
+        super.onInit();
+        return;
+      }
       Get.offNamed(
         VIEWS.payments.path,
-        arguments: {'subjectId': subjectId},
+        arguments: checkoutArgs,
       );
       Get.snackbar(
         'Subscription Required',
-        'Subscribe to unlock all chapters for this subject.',
+        'Subscribe to unlock all Sections for this subject.',
         snackPosition: SnackPosition.BOTTOM,
       );
       super.onInit();

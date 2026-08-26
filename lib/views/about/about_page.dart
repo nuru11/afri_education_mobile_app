@@ -487,14 +487,14 @@ class _AboutPageState extends State<AboutPage> {
           _buildContactItem(
             icon: Icons.email_rounded,
             title: 'Email',
-            value: 'remedialtricks@gmail.com',
+            value: 'entrancetricks@gmail.com',
             onTap: () => _launchEmail(),
           ),
 
           _buildContactItem(
             icon: Icons.phone_rounded,
             title: 'Phone',
-            value: '0927052140',
+            value: '0920308061',
             onTap: () => _launchPhone(),
           ),
 
@@ -633,7 +633,7 @@ class _AboutPageState extends State<AboutPage> {
   }
 
   void _launchEmail() async {
-    const emailUrl = 'mailto:remedialtricks@gmail.com?subject=Support Request';
+    const emailUrl = 'mailto:entrancetricks@gmail.com?subject=Support Request';
     final uri = Uri.parse(emailUrl);
 
     try {
@@ -658,7 +658,7 @@ class _AboutPageState extends State<AboutPage> {
   }
 
   void _launchPhone() async {
-    const phoneUrl = 'tel:0927052140';
+    const phoneUrl = 'tel:0920308061';
     final uri = Uri.parse(phoneUrl);
 
     try {

@@ -23,6 +23,7 @@ class FeaturedUpdateItem {
   final DateTime createdAt;
   final FeaturedUpdateType type;
   final String? subjectName;
+  final String? imageUrl;
 
   const FeaturedUpdateItem({
     required this.id,
@@ -30,6 +31,7 @@ class FeaturedUpdateItem {
     required this.createdAt,
     required this.type,
     this.subjectName,
+    this.imageUrl,
   });
 }
 
@@ -136,7 +138,7 @@ class HomeDashboardController extends GetxController {
 
       _subjects = await SubjectsService().getSubjects(
         device.id,
-        gradeId: gradeId ?? 0,
+        gradeId: gradeId,
       );
       await HiveSubjectsStorage().write('subjects', _subjects);
     } catch (e) {
@@ -176,6 +178,7 @@ class HomeDashboardController extends GetxController {
               title: news.title,
               createdAt: news.createdAt,
               type: FeaturedUpdateType.news,
+              imageUrl: news.coverImage,
             ),
           )
           .toList();
@@ -189,6 +192,7 @@ class HomeDashboardController extends GetxController {
               createdAt: exam.createdAt,
               type: FeaturedUpdateType.exam,
               subjectName: exam.subject?.name,
+              imageUrl: exam.image,
             ),
           )
           .toList();
@@ -211,7 +215,7 @@ class HomeDashboardController extends GetxController {
 
     try {
       final device = await UserDevice.getDeviceInfo(_user?.phoneNumber ?? '');
-      final gradeId = _user?.grade.id ?? 0;
+      final gradeId = _user?.grade.id;
 
       _subjects = await SubjectsService().getSubjects(device.id, gradeId: gradeId);
       logger.i(_subjects.map((e) => e.isLocked).toList()[0]);
@@ -255,6 +259,7 @@ class HomeDashboardController extends GetxController {
   }
 
   void openExam(int examId) {
+    if (!requireAuth()) return;
     final examController = Get.find<ExamController>();
     Exam? selectedExam;
     for (final exam in examController.exams) {

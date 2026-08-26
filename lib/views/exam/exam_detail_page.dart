@@ -105,6 +105,7 @@ class _ExamDetailPageState extends State<ExamDetailPage> {
     QuestionMode? presetMode,
     bool resume = false,
   }) async {
+    if (!requireAuth()) return;
     if (_exam.isLocked) {
       AppSnackbar.showInfo(
         'Locked Exam',

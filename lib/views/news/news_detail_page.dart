@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:get/get.dart';
@@ -163,29 +164,24 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
       ],
 
       flexibleSpace: FlexibleSpaceBar(
-        background: Container(
-          decoration: BoxDecoration(
-            image: DecorationImage(
-              image: NetworkImage(
-                news.coverImage ??
-                    'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=400&h=300&fit=crop',
-              ),
-              fit: BoxFit.cover,
-            ),
-          ),
-          child: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Colors.transparent,
-                  Colors.black.withValues(alpha: 0.3),
-                  Colors.black.withValues(alpha: 0.7),
-                ],
+        background: Stack(
+          fit: StackFit.expand,
+          children: [
+            _buildHeroCover(news.coverImage),
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.transparent,
+                    Colors.black.withValues(alpha: 0.3),
+                    Colors.black.withValues(alpha: 0.7),
+                  ],
+                ),
               ),
             ),
-          ),
+          ],
         ),
       ),
     );
@@ -375,6 +371,45 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
             // _buildActionButtons(),
             const SizedBox(height: 40),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeroCover(String? imageUrl) {
+    final hasUrl = imageUrl != null && imageUrl.trim().isNotEmpty;
+    if (!hasUrl) return _coverFallback();
+
+    return CachedNetworkImage(
+      imageUrl: imageUrl.trim(),
+      fit: BoxFit.cover,
+      width: double.infinity,
+      height: double.infinity,
+      placeholder: (context, url) => Container(
+        color: const Color(0xFF667eea).withValues(alpha: 0.08),
+        child: const Center(
+          child: SizedBox(
+            width: 22,
+            height: 22,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: Color(0xFF667eea),
+            ),
+          ),
+        ),
+      ),
+      errorWidget: (context, url, error) => _coverFallback(),
+    );
+  }
+
+  Widget _coverFallback() {
+    return Container(
+      color: const Color(0xFF667eea).withValues(alpha: 0.1),
+      child: const Center(
+        child: Icon(
+          Icons.article_outlined,
+          color: Color(0xFF667eea),
+          size: 48,
         ),
       ),
     );

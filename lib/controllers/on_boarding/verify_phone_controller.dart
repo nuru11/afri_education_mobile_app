@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:vector_academy/views/views.dart';
 import 'package:vector_academy/services/services.dart';
 import 'package:vector_academy/utils/utils.dart';
 
@@ -21,10 +20,12 @@ class VerifyPhoneController extends GetxController {
   Timer? _timer;
 
   String phoneNumber = '';
+  Map<String, dynamic>? _redirectArgs;
 
   @override
   void onInit() {
     super.onInit();
+    _redirectArgs = captureAuthRedirectArgs();
     phoneNumber = Get.arguments?['phone'] ?? '';
     _startResendTimer();
   }
@@ -68,8 +69,7 @@ class VerifyPhoneController extends GetxController {
             colorText: Colors.white,
           );
 
-          // Navigate to home
-          Get.offAllNamed(VIEWS.home.path);
+          navigateAfterAuth(_redirectArgs);
         } else {
           logger.e('Invalid OTP. Please try again.');
           Get.snackbar(

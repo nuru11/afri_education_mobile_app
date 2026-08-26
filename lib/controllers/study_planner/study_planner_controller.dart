@@ -190,6 +190,13 @@ class StudyPlannerController extends GetxController {
     _isShowingOfflineData = false;
     update();
 
+    if (!isCurrentUserAuthenticated) {
+      _studyPlans = [];
+      _isLoading = false;
+      update();
+      return;
+    }
+
     try {
       // Load from local storage first for immediate UI update
       final localPlans = await _storage.getStudyPlans();
@@ -237,10 +244,12 @@ class StudyPlannerController extends GetxController {
   }
 
   void showAddPlanDialog() {
+    if (!requireAuth()) return;
     Get.toNamed('/add-plan');
   }
 
   void showEditPlanPage(StudyPlan plan) {
+    if (!requireAuth()) return;
     Get.toNamed('/add-plan', arguments: plan);
   }
 
@@ -331,18 +340,7 @@ class StudyPlannerController extends GetxController {
 
       logger.d('New completed dates: $newCompletedDates');
       // Create updated plan with new completion status
-      final optimisticPlan = StudyPlan(
-        id: plan.id,
-        title: plan.title,
-        description: plan.description,
-        subject: plan.subject,
-        dueDate: plan.dueDate,
-        completedDates: newCompletedDates,
-        createdAt: plan.createdAt,
-        repeatDays: plan.repeatDays,
-        startDate: plan.startDate,
-        endDate: plan.endDate,
-      );
+      final optimisticPlan = plan.copyWith(completedDates: newCompletedDates);
 
       _studyPlans[index] = optimisticPlan;
       // Save to local storage immediately
@@ -595,6 +593,37 @@ class StudyPlannerController extends GetxController {
     } else {
       return sortedDays.map((d) => dayNames[d - 1]).join(', ');
     }
+  }
+
+  Future<void> togglePlanAlarms(StudyPlan plan, bool enabled) async {
+    if (enabled) {
+      final premium = Get.find<PremiumService>();
+      if (!await premium.ensurePremium(feature: 'planner alarms')) {
+        return;
+      }
+    }
+    var alarms = plan.alarms;
+    if (enabled && alarms.isEmpty) {
+      alarms = [StudyPlanAlarm.defaultAlarm()];
+    }
+    final updated = plan.copyWith(alarmsEnabled: enabled, alarms: alarms);
+    await updateStudyPlan(updated, showSnackbar: false);
+  }
+
+  Future<void> savePlanAlarms(
+    StudyPlan plan, {
+    required bool enabled,
+    required List<StudyPlanAlarm> alarms,
+  }) async {
+    if (enabled) {
+      final premium = Get.find<PremiumService>();
+      if (!await premium.ensurePremium(feature: 'planner alarms')) {
+        return;
+      }
+    }
+    await StudyPlannerReminderPermissions.ensureBeforeScheduling();
+    final updated = plan.copyWith(alarmsEnabled: enabled, alarms: alarms);
+    await updateStudyPlan(updated, showSnackbar: false);
   }
 
   /// Schedule notification for a single plan

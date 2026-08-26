@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:vector_academy/controllers/controllers.dart';
+import 'package:vector_academy/components/components.dart';
 import 'package:vector_academy/models/models.dart';
-import 'package:vector_academy/utils/navigation_utils.dart';
 
 class AddPlanPage extends StatelessWidget {
   const AddPlanPage({super.key});
@@ -10,21 +10,12 @@ class AddPlanPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GetBuilder<AddPlanController>(
-      builder: (controller) => Scaffold(
-        backgroundColor: Colors.grey[50],
-        appBar: AppBar(
-          title: Text(
-            controller.plan == null ? 'Create Study Plan' : 'Edit Study Plan',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-          ),
-          backgroundColor: Colors.blue[600],
-          elevation: 0,
-          leading: IconButton(
-            icon: Icon(Icons.arrow_back, color: Colors.white),
-            onPressed: () => safePop(context: context),
-          ),
-        ),
-        body: _AddPlanForm(),
+      builder: (controller) => AppPageScaffold(
+        title: controller.plan == null
+            ? 'Create Study Plan'
+            : 'Edit Study Plan',
+        subtitle: 'Schedule a study block',
+        body: const _AddPlanForm(),
       ),
     );
   }
@@ -33,334 +24,291 @@ class AddPlanPage extends StatelessWidget {
 class _AddPlanForm extends StatelessWidget {
   const _AddPlanForm();
 
-  @override
-  Widget build(BuildContext context) {
-    return GetBuilder<AddPlanController>(
-      builder: (controller) => SafeArea(
-        child: Form(
-          key: controller.formKey,
-          child: SingleChildScrollView(
-            padding: EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Title Field
-                TextFormField(
-                  controller: controller.titleController,
-                  enabled: !controller.isSubmitting,
-                  decoration: InputDecoration(
-                    labelText: 'Title *',
-                    hintText: 'e.g., Review Math Chapter 5',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    filled: true,
-                    fillColor: Colors.white,
-                  ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Please enter a title';
-                    }
-                    return null;
-                  },
-                  autofocus: controller.plan == null,
-                  textCapitalization: TextCapitalization.sentences,
-                ),
-                SizedBox(height: 20),
+  InputDecoration _fieldDecoration({
+    required String label,
+    String? hint,
+    Widget? prefixIcon,
+  }) {
+    return InputDecoration(
+      labelText: label,
+      hintText: hint,
+      prefixIcon: prefixIcon,
+      filled: true,
+      fillColor: surfaceColor,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(color: borderColor),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(color: borderColor),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: BorderSide(color: primaryColor, width: 1.5),
+      ),
+    );
+  }
 
-                // Description Field
-                TextFormField(
-                  controller: controller.descriptionController,
-                  enabled: !controller.isSubmitting,
-                  decoration: InputDecoration(
-                    labelText: 'Description',
-                    hintText: 'Add notes or details...',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    filled: true,
-                    fillColor: Colors.white,
+  Widget _pickerTile({
+    required IconData icon,
+    required Color iconBg,
+    required Color iconColor,
+    required String label,
+    required String value,
+    required Color valueColor,
+    required VoidCallback? onTap,
+    Widget? trailing,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: AppSurfaceCard(
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: iconBg,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: borderColor),
+              ),
+              child: Icon(icon, color: iconColor, size: 22),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(fontSize: 12, color: onSurfaceVariant),
                   ),
-                  maxLines: 5,
-                  textCapitalization: TextCapitalization.sentences,
-                ),
-                SizedBox(height: 20),
-
-                // Courses Dropdown
-                _CoursesDropdown(controller: controller),
-                SizedBox(height: 30),
-
-                // Date and Time Section
-                Text(
-                  'Schedule',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey[800],
-                  ),
-                ),
-                SizedBox(height: 16),
-
-                // Start Time Picker
-                InkWell(
-                  onTap: controller.isSubmitting
-                      ? null
-                      : () => controller.selectStartTime(context),
-                  child: Opacity(
-                    opacity: controller.isSubmitting ? 0.6 : 1.0,
-                    child: Container(
-                      padding: EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey[300]!),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            padding: EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: Colors.green[50],
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Icon(
-                              Icons.play_arrow_rounded,
-                              color: Colors.green[600],
-                              size: 24,
-                            ),
-                          ),
-                          SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Start Time *',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey[600],
-                                  ),
-                                ),
-                                SizedBox(height: 4),
-                                Text(
-                                  controller.formatStartTimeDisplay(),
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                    color: controller.startTime != null
-                                        ? Colors.grey[800]
-                                        : Colors.grey[400],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Icon(Icons.chevron_right, color: Colors.grey[400]),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                SizedBox(height: 12),
-
-                // End Time Picker
-                InkWell(
-                  onTap: controller.isSubmitting
-                      ? null
-                      : () => controller.selectEndTime(context),
-                  child: Opacity(
-                    opacity: controller.isSubmitting ? 0.6 : 1.0,
-                    child: Container(
-                      padding: EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey[300]!),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            padding: EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: Colors.red[50],
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Icon(
-                              Icons.stop_rounded,
-                              color: Colors.red[600],
-                              size: 24,
-                            ),
-                          ),
-                          SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'End Time *',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey[600],
-                                  ),
-                                ),
-                                SizedBox(height: 4),
-                                Text(
-                                  controller.formatEndTimeDisplay(),
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                    color: controller.endTime != null
-                                        ? Colors.grey[800]
-                                        : Colors.grey[400],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Icon(Icons.chevron_right, color: Colors.grey[400]),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                SizedBox(height: 30),
-
-                // Repeat Days Section
-                Text(
-                  'Repeat',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey[800],
-                  ),
-                ),
-                SizedBox(height: 12),
-                Text(
-                  'Select days of the week to repeat this plan',
-                  style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-                ),
-                SizedBox(height: 16),
-                Container(
-                  padding: EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey[300]!),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: List.generate(7, (index) {
-                      final day = index + 1; // 1=Monday, 7=Sunday
-                      final isSelected = controller.selectedDays.contains(day);
-                      return GestureDetector(
-                        onTap: controller.isSubmitting
-                            ? null
-                            : () => controller.toggleDay(day),
-                        child: Opacity(
-                          opacity: controller.isSubmitting ? 0.6 : 1.0,
-                          child: Container(
-                            width: 44,
-                            height: 44,
-                            decoration: BoxDecoration(
-                              color: isSelected
-                                  ? Colors.blue[600]
-                                  : Colors.grey[100],
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: isSelected
-                                    ? Colors.blue[600]!
-                                    : Colors.grey[300]!,
-                                width: 2,
-                              ),
-                            ),
-                            child: Center(
-                              child: Text(
-                                controller.dayNames[index],
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: isSelected
-                                      ? Colors.white
-                                      : Colors.grey[700],
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    }),
-                  ),
-                ),
-                if (controller.selectedDays.isNotEmpty) ...[
-                  SizedBox(height: 12),
-                  Container(
-                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.blue[50],
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.repeat_rounded,
-                          size: 16,
-                          color: Colors.blue[700],
-                        ),
-                        SizedBox(width: 8),
-                        Text(
-                          'Repeats on: ${controller.selectedDays.map((d) => controller.dayNames[d - 1]).join(', ')}',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.blue[700],
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
+                  const SizedBox(height: 4),
+                  Text(
+                    value,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: valueColor,
                     ),
                   ),
                 ],
-                SizedBox(height: 40),
+              ),
+            ),
+            if (trailing != null) trailing,
+            Icon(Icons.chevron_right_rounded, color: secondaryColor),
+          ],
+        ),
+      ),
+    );
+  }
 
-                // Save Button
-                ElevatedButton(
-                  onPressed: controller.isSubmitting
-                      ? null
-                      : controller.savePlan,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue[600],
-                    foregroundColor: Colors.white,
-                    padding: EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+  @override
+  Widget build(BuildContext context) {
+    return GetBuilder<AddPlanController>(
+      builder: (controller) => Form(
+        key: controller.formKey,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              TextFormField(
+                controller: controller.titleController,
+                enabled: !controller.isSubmitting,
+                decoration: _fieldDecoration(
+                  label: 'Title *',
+                  hint: 'e.g., Review Math Chapter 5',
+                ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Please enter a title';
+                  }
+                  return null;
+                },
+                autofocus: controller.plan == null,
+                textCapitalization: TextCapitalization.sentences,
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: controller.descriptionController,
+                enabled: !controller.isSubmitting,
+                decoration: _fieldDecoration(
+                  label: 'Description',
+                  hint: 'Add notes or details...',
+                ),
+                maxLines: 4,
+                textCapitalization: TextCapitalization.sentences,
+              ),
+              const SizedBox(height: 16),
+              _CoursesDropdown(
+                controller: controller,
+                decorationBuilder: _fieldDecoration,
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'Schedule',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: onSurfaceColor,
+                      fontWeight: FontWeight.w700,
                     ),
-                    elevation: 2,
-                    disabledBackgroundColor: Colors.grey[400],
-                    disabledForegroundColor: Colors.white,
-                  ),
-                  child: controller.isSubmitting
-                      ? SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              Colors.white,
+              ),
+              const SizedBox(height: 12),
+              Opacity(
+                opacity: controller.isSubmitting ? 0.6 : 1.0,
+                child: _pickerTile(
+                  icon: Icons.play_arrow_rounded,
+                  iconBg: primaryColor.withValues(alpha: 0.08),
+                  iconColor: primaryColor,
+                  label: 'Start Time *',
+                  value: controller.formatStartTimeDisplay(),
+                  valueColor: controller.startTime != null
+                      ? onSurfaceColor
+                      : onSurfaceVariant,
+                  onTap: controller.isSubmitting
+                      ? null
+                      : () => controller.selectStartTime(context),
+                ),
+              ),
+              const SizedBox(height: 10),
+              Opacity(
+                opacity: controller.isSubmitting ? 0.6 : 1.0,
+                child: _pickerTile(
+                  icon: Icons.stop_rounded,
+                  iconBg: secondaryColor.withValues(alpha: 0.1),
+                  iconColor: secondaryColor,
+                  label: 'End Time *',
+                  value: controller.formatEndTimeDisplay(),
+                  valueColor: controller.endTime != null
+                      ? onSurfaceColor
+                      : onSurfaceVariant,
+                  onTap: controller.isSubmitting
+                      ? null
+                      : () => controller.selectEndTime(context),
+                ),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'Repeat',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: onSurfaceColor,
+                      fontWeight: FontWeight.w700,
+                    ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Select days of the week to repeat this plan',
+                style: TextStyle(fontSize: 13, color: onSurfaceVariant),
+              ),
+              const SizedBox(height: 12),
+              AppSurfaceCard(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: List.generate(7, (index) {
+                    final day = index + 1;
+                    final isSelected =
+                        controller.selectedDays.contains(day);
+                    return GestureDetector(
+                      onTap: controller.isSubmitting
+                          ? null
+                          : () => controller.toggleDay(day),
+                      child: Opacity(
+                        opacity: controller.isSubmitting ? 0.6 : 1.0,
+                        child: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? primaryColor
+                                : backgroundColor,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color:
+                                  isSelected ? primaryColor : borderColor,
                             ),
                           ),
-                        )
-                      : Text(
-                          controller.plan == null
-                              ? 'Create Plan'
-                              : 'Update Plan',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
+                          child: Center(
+                            child: Text(
+                              controller.dayNames[index],
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: isSelected
+                                    ? Colors.white
+                                    : onSurfaceVariant,
+                              ),
+                            ),
                           ),
                         ),
+                      ),
+                    );
+                  }),
+                ),
+              ),
+              if (controller.selectedDays.isNotEmpty) ...[
+                const SizedBox(height: 10),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: primaryColor.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: borderColor),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.repeat_rounded, size: 16, color: primaryColor),
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          'Repeats on: ${controller.selectedDays.map((d) => controller.dayNames[d - 1]).join(', ')}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: primaryColor,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
-            ),
+              const SizedBox(height: 32),
+              FilledButton(
+                onPressed:
+                    controller.isSubmitting ? null : controller.savePlan,
+                style: FilledButton.styleFrom(
+                  backgroundColor: primaryColor,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  disabledBackgroundColor: onSurfaceVariant,
+                ),
+                child: controller.isSubmitting
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor:
+                              AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                      )
+                    : Text(
+                        controller.plan == null
+                            ? 'Create Plan'
+                            : 'Update Plan',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+              ),
+            ],
           ),
         ),
       ),
@@ -370,21 +318,24 @@ class _AddPlanForm extends StatelessWidget {
 
 class _CoursesDropdown extends StatelessWidget {
   final AddPlanController controller;
+  final InputDecoration Function({
+    required String label,
+    String? hint,
+    Widget? prefixIcon,
+  }) decorationBuilder;
 
-  const _CoursesDropdown({required this.controller});
+  const _CoursesDropdown({
+    required this.controller,
+    required this.decorationBuilder,
+  });
 
   @override
   Widget build(BuildContext context) {
     if (controller.isLoadingCourses && controller.courses.isEmpty) {
       return InputDecorator(
-        decoration: InputDecoration(
-          labelText: 'Courses',
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          filled: true,
-          fillColor: Colors.white,
-          prefixIcon: Icon(Icons.book_rounded),
+        decoration: decorationBuilder(
+          label: 'Courses',
+          prefixIcon: Icon(Icons.menu_book_rounded, color: primaryColor),
         ),
         child: SizedBox(
           height: 24,
@@ -393,7 +344,10 @@ class _CoursesDropdown extends StatelessWidget {
             child: SizedBox(
               width: 18,
               height: 18,
-              child: CircularProgressIndicator(strokeWidth: 2),
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: primaryColor,
+              ),
             ),
           ),
         ),
@@ -409,7 +363,6 @@ class _CoursesDropdown extends StatelessWidget {
       ),
     ];
 
-    // Legacy free-text subject that isn't in the courses list
     final hasLegacy =
         controller.legacySubjectName != null &&
         controller.legacySubjectName!.isNotEmpty &&
@@ -421,19 +374,14 @@ class _CoursesDropdown extends StatelessWidget {
       onChanged: controller.isSubmitting || controller.courses.isEmpty
           ? null
           : controller.selectCourse,
-      decoration: InputDecoration(
-        labelText: 'Courses',
-        hintText: controller.courses.isEmpty
+      decoration: decorationBuilder(
+        label: 'Courses',
+        hint: controller.courses.isEmpty
             ? 'No courses available'
             : hasLegacy
-            ? controller.legacySubjectName
-            : 'Select a course',
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        filled: true,
-        fillColor: Colors.white,
-        prefixIcon: Icon(Icons.book_rounded),
+                ? controller.legacySubjectName
+                : 'Select a course',
+        prefixIcon: Icon(Icons.menu_book_rounded, color: primaryColor),
       ),
       isExpanded: true,
     );

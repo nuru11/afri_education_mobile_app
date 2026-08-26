@@ -4,7 +4,7 @@ import 'package:vector_academy/views/home/home_dashboard.dart';
 import 'package:vector_academy/views/exam/exam_page.dart';
 import 'package:vector_academy/views/news/news_page.dart';
 import 'package:vector_academy/views/leaderboard/leaderboard_page.dart';
-import 'package:vector_academy/views/study_planner/study_planner_page.dart';
+import 'package:vector_academy/views/study_hub/study_hub_page.dart';
 import 'package:vector_academy/controllers/controllers.dart';
 
 class Home extends StatelessWidget {
@@ -17,7 +17,7 @@ class Home extends StatelessWidget {
       ExamPage(),
       NewsPage(),
       LeaderboardPage(),
-      StudyPlannerPage(),
+      const StudyHubPage(),
     ];
 
     return GetBuilder<MainNavigationController>(
@@ -79,9 +79,9 @@ class Home extends StatelessWidget {
                       context: context,
                       controller: controller,
                       index: 4,
-                      icon: Icons.calendar_today_rounded,
-                      activeIcon: Icons.calendar_today_rounded,
-                      label: 'Planner',
+                      icon: Icons.event_note_outlined,
+                      activeIcon: Icons.event_note_rounded,
+                      label: 'Study',
                     ),
                   ],
                 ),

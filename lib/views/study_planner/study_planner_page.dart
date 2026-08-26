@@ -2,85 +2,88 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:vector_academy/controllers/controllers.dart';
 import 'package:vector_academy/models/models.dart';
-import 'package:vector_academy/utils/utils.dart';
+import 'package:vector_academy/components/components.dart';
+import 'package:vector_academy/utils/ethiopian_time.dart';
+import 'package:vector_academy/services/premium_service.dart';
+import 'package:vector_academy/views/study_planner/plan_alarms_sheet.dart';
+import 'package:vector_academy/views/study_planner/notify_countdown.dart';
 
 class StudyPlannerPage extends StatelessWidget {
-  const StudyPlannerPage({super.key});
+  const StudyPlannerPage({super.key, this.embeddedInHub = false});
+
+  final bool embeddedInHub;
 
   @override
   Widget build(BuildContext context) {
     return GetBuilder<StudyPlannerController>(
-      builder: (controller) => Scaffold(
-        backgroundColor: Colors.grey[50],
-        appBar: AppBar(
-          title: Text(
-            'Study Planner',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-          ),
-          backgroundColor: Colors.blue[600],
-          elevation: 0,
-          automaticallyImplyLeading: false,
-        ),
-        body: SafeArea(
-          child: Column(
-            children: [
-              if (controller.isShowingOfflineData) _buildOfflineNotice(),
-              Expanded(
-                child: controller.isLoading
-                    ? Center(child: CircularProgressIndicator())
-                    : RefreshIndicator(
-                        onRefresh: () => controller.loadStudyPlans(),
-                        child: CustomScrollView(
-                          slivers: [
-                            // Day Filter
+      builder: (controller) {
+        final body = Column(
+          children: [
+            if (controller.isShowingOfflineData) _buildOfflineNotice(),
+            Expanded(
+              child: controller.isLoading
+                  ? Center(child: CircularProgressIndicator(color: primaryColor))
+                  : RefreshIndicator(
+                      color: primaryColor,
+                      onRefresh: () => controller.loadStudyPlans(),
+                      child: CustomScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        slivers: [
+                          SliverToBoxAdapter(
+                            child: _buildDayFilter(context, controller),
+                          ),
+                          if (controller.filteredPlans.isNotEmpty)
                             SliverToBoxAdapter(
-                              child: _buildDayFilter(context, controller),
+                              child: _buildSectionHeader(
+                                context,
+                                _getFilterTitle(controller.selectedFilterDate),
+                              ),
                             ),
-
-                            // Filtered Plans
-                            if (controller.filteredPlans.isNotEmpty)
-                              SliverToBoxAdapter(
-                                child: _buildSectionHeader(
+                          if (controller.filteredPlans.isNotEmpty)
+                            SliverPadding(
+                              padding: const EdgeInsets.fromLTRB(16, 0, 16, 88),
+                              sliver: SliverList.separated(
+                                itemCount: controller.filteredPlans.length,
+                                separatorBuilder: (_, _) =>
+                                    const SizedBox(height: 8),
+                                itemBuilder: (context, index) => _buildPlanCard(
                                   context,
-                                  _getFilterTitle(controller.selectedFilterDate),
-                                  Icons.calendar_today_rounded,
+                                  controller.filteredPlans[index],
+                                  controller,
                                 ),
                               ),
-                            if (controller.filteredPlans.isNotEmpty)
-                              SliverList(
-                                delegate: SliverChildBuilderDelegate(
-                                  (context, index) => _buildPlanCard(
-                                    context,
-                                    controller.filteredPlans[index],
-                                    controller,
-                                  ),
-                                  childCount: controller.filteredPlans.length,
-                                ),
-                              ),
-
-                            // Empty State
-                            if (controller.filteredPlans.isEmpty)
-                              SliverFillRemaining(
-                                hasScrollBody: false,
-                                child: _buildEmptyState(context, controller),
-                              ),
-                          ],
-                        ),
+                            ),
+                          if (controller.filteredPlans.isEmpty)
+                            SliverFillRemaining(
+                              hasScrollBody: false,
+                              child: _buildEmptyState(context, controller),
+                            ),
+                        ],
                       ),
-              ),
-            ],
+                    ),
+            ),
+          ],
+        );
+
+        if (embeddedInHub) return body;
+
+        return AppPageScaffold(
+          embeddedInTab: true,
+          showBack: false,
+          title: 'Study Planner',
+          subtitle: 'Your week at a glance',
+          floatingActionButton: FloatingActionButton.extended(
+            onPressed: () => controller.showAddPlanDialog(),
+            icon: const Icon(Icons.add, color: Colors.white),
+            label: const Text(
+              'Add Plan',
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+            ),
+            backgroundColor: primaryColor,
           ),
-        ),
-        floatingActionButton: FloatingActionButton.extended(
-          onPressed: () => controller.showAddPlanDialog(),
-          icon: Icon(Icons.add, color: Colors.white),
-          label: Text(
-            'Add Plan',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-          ),
-          backgroundColor: Colors.blue[600],
-        ),
-      ),
+          body: body,
+        );
+      },
     );
   }
 
@@ -92,48 +95,41 @@ class StudyPlannerPage extends StatelessWidget {
     final today = DateTime(now.year, now.month, now.day);
     final selectedDate = controller.selectedFilterDate ?? today;
 
-    // Generate 7 days starting from today
-    final days = List.generate(7, (index) {
-      return today.add(Duration(days: index));
-    });
+    final days = List.generate(7, (index) => today.add(Duration(days: index)));
 
     return Container(
-      padding: EdgeInsets.symmetric(vertical: 16, horizontal: 8),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 4,
-            offset: Offset(0, 2),
-          ),
-        ],
-      ),
+      padding: const EdgeInsets.symmetric(vertical: 12),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
-        padding: EdgeInsets.symmetric(horizontal: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 16),
         child: Row(
           children: days.map((date) {
-            final isSelected =
-                selectedDate.year == date.year &&
+            final isSelected = selectedDate.year == date.year &&
                 selectedDate.month == date.month &&
                 selectedDate.day == date.day;
-            final isToday =
-                date.year == today.year &&
+            final isToday = date.year == today.year &&
                 date.month == today.month &&
                 date.day == today.day;
 
             return GestureDetector(
               onTap: () => controller.setFilterDate(date),
               child: Container(
-                margin: EdgeInsets.symmetric(horizontal: 4),
-                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                margin: const EdgeInsets.only(right: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                 decoration: BoxDecoration(
-                  color: isSelected ? Colors.blue[600] : Colors.grey[100],
-                  borderRadius: BorderRadius.circular(12),
-                  border: isToday && !isSelected
-                      ? Border.all(color: Colors.blue[600]!, width: 2)
-                      : null,
+                  color: isSelected
+                      ? primaryColor
+                      : surfaceColor,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: isSelected
+                        ? primaryColor
+                        : isToday
+                            ? primaryColor
+                            : borderColor,
+                    width: isToday && !isSelected ? 1.5 : 1,
+                  ),
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -146,11 +142,11 @@ class StudyPlannerPage extends StatelessWidget {
                         color: isSelected
                             ? Colors.white
                             : isToday
-                            ? Colors.blue[600]
-                            : Colors.grey[600],
+                                ? primaryColor
+                                : onSurfaceVariant,
                       ),
                     ),
-                    SizedBox(height: 4),
+                    const SizedBox(height: 4),
                     Text(
                       '${date.day}',
                       style: TextStyle(
@@ -159,17 +155,17 @@ class StudyPlannerPage extends StatelessWidget {
                         color: isSelected
                             ? Colors.white
                             : isToday
-                            ? Colors.blue[600]
-                            : Colors.grey[800],
+                                ? primaryColor
+                                : onSurfaceColor,
                       ),
                     ),
                     if (isToday && !isSelected)
                       Container(
-                        margin: EdgeInsets.only(top: 4),
+                        margin: const EdgeInsets.only(top: 4),
                         width: 4,
                         height: 4,
                         decoration: BoxDecoration(
-                          color: Colors.blue[600],
+                          color: primaryColor,
                           shape: BoxShape.circle,
                         ),
                       ),
@@ -185,24 +181,24 @@ class StudyPlannerPage extends StatelessWidget {
 
   Widget _buildOfflineNotice() {
     return Container(
-      margin: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+      margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF7E6),
+        color: secondaryColor.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFFFD89C)),
+        border: Border.all(color: secondaryColor.withValues(alpha: 0.35)),
       ),
-      child: const Row(
+      child: Row(
         children: [
-          Icon(Icons.wifi_off_rounded, size: 16, color: Color(0xFF8A5A00)),
-          SizedBox(width: 8),
+          Icon(Icons.wifi_off_rounded, size: 16, color: secondaryColor),
+          const SizedBox(width: 8),
           Expanded(
             child: Text(
               "You're offline – showing saved data",
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF8A5A00),
+                color: secondaryColor,
               ),
             ),
           ),
@@ -212,59 +208,46 @@ class StudyPlannerPage extends StatelessWidget {
   }
 
   String _getDayAbbreviation(int weekday) {
-    final days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     return days[weekday - 1];
   }
 
   String _getFilterTitle(DateTime? date) {
-    if (date == null) return 'Today\'s Schedule';
+    if (date == null) return "Today's Schedule";
 
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    final tomorrow = today.add(Duration(days: 1));
+    final tomorrow = today.add(const Duration(days: 1));
     final filterDate = DateTime(date.year, date.month, date.day);
 
-    if (filterDate.year == today.year &&
-        filterDate.month == today.month &&
-        filterDate.day == today.day) {
-      return 'Today\'s Schedule';
-    } else if (filterDate.year == tomorrow.year &&
-        filterDate.month == tomorrow.month &&
-        filterDate.day == tomorrow.day) {
-      return 'Tomorrow\'s Schedule';
-    } else {
-      final daysOfWeek = [
-        'Monday',
-        'Tuesday',
-        'Wednesday',
-        'Thursday',
-        'Friday',
-        'Saturday',
-        'Sunday',
-      ];
-      final dayName = daysOfWeek[date.weekday - 1];
-      return '$dayName\'s Schedule';
-    }
+    if (filterDate == today) return "Today's Schedule";
+    if (filterDate == tomorrow) return "Tomorrow's Schedule";
+
+    const daysOfWeek = [
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+      'Sunday',
+    ];
+    return "${daysOfWeek[date.weekday - 1]}'s Schedule";
   }
 
-  Widget _buildSectionHeader(
-    BuildContext context,
-    String title,
-    IconData icon,
-  ) {
+  Widget _buildSectionHeader(BuildContext context, String title) {
     return Padding(
-      padding: EdgeInsets.fromLTRB(20, 20, 20, 12),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
       child: Row(
         children: [
-          Icon(icon, color: Colors.blue[600], size: 24),
-          SizedBox(width: 8),
+          Icon(Icons.calendar_today_rounded, color: primaryColor, size: 18),
+          const SizedBox(width: 8),
           Text(
             title,
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey[800],
-            ),
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: onSurfaceColor,
+                  fontWeight: FontWeight.w700,
+                ),
           ),
         ],
       ),
@@ -276,7 +259,6 @@ class StudyPlannerPage extends StatelessWidget {
     StudyPlan plan,
     StudyPlannerController controller,
   ) {
-    // Check completion for the selected filter date
     final filterDate = controller.selectedFilterDate;
     final targetDate = filterDate ?? DateTime.now();
     final targetDateOnly = DateTime(
@@ -288,34 +270,25 @@ class StudyPlannerPage extends StatelessWidget {
     final today = DateTime(now.year, now.month, now.day);
     final isCompleted = plan.isCompletedForDate(targetDateOnly);
 
-    // Check if task is overdue (past date or past end time on selected day)
     bool isOverdue = false;
-    // Use endDate if available, otherwise fall back to dueDate
     final endDateTime = plan.endDate ?? plan.dueDate;
     if (!isCompleted && endDateTime != null) {
-      // Check if the selected date is in the past
       if (targetDateOnly.isBefore(today)) {
         isOverdue = true;
-      }
-      // Check if it's today and the end time has passed
-      else if (targetDateOnly.year == today.year &&
+      } else if (targetDateOnly.year == today.year &&
           targetDateOnly.month == today.month &&
           targetDateOnly.day == today.day) {
-        // For repeating plans, check if it repeats on today
-        // For non-repeating plans, check if the plan's date matches today
         final effectiveDate = plan.effectiveDate;
         final isRepeatingOnToday =
             plan.isRepeating &&
             plan.repeatDays.contains(targetDateOnly.weekday);
-        final isNonRepeatingOnToday =
-            !plan.isRepeating &&
+        final isNonRepeatingOnToday = !plan.isRepeating &&
             effectiveDate != null &&
             effectiveDate.year == today.year &&
             effectiveDate.month == today.month &&
             effectiveDate.day == today.day;
 
         if (isRepeatingOnToday || isNonRepeatingOnToday) {
-          // Create a DateTime for today with the plan's end time
           final planEndDateTime = DateTime(
             today.year,
             today.month,
@@ -323,192 +296,224 @@ class StudyPlannerPage extends StatelessWidget {
             endDateTime.hour,
             endDateTime.minute,
           );
-          // Mark as overdue if the end time has passed
-          if (planEndDateTime.isBefore(now)) {
-            isOverdue = true;
-          }
+          if (planEndDateTime.isBefore(now)) isOverdue = true;
         }
       }
     }
 
-    return Container(
-      margin: EdgeInsets.symmetric(horizontal: 20, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isOverdue
-              ? Colors.red[400]!
-              : isCompleted
-              ? Colors.green[200]!
-              : Colors.grey[200]!,
-          width: isOverdue ? 2 : 1,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: Offset(0, 2),
+    final borderTint = isOverdue
+        ? secondaryColor
+        : isCompleted
+            ? primaryColor.withValues(alpha: 0.35)
+            : borderColor;
+
+    return AppSurfaceCard(
+      onTap: () => controller.showPlanDetails(plan),
+      child: Container(
+        decoration: BoxDecoration(
+          border: Border(
+            left: BorderSide(
+              color: isOverdue
+                  ? secondaryColor
+                  : isCompleted
+                      ? primaryColor
+                      : Colors.transparent,
+              width: (isOverdue || isCompleted) ? 3 : 0,
+            ),
           ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () => controller.showPlanDetails(plan),
-          borderRadius: BorderRadius.circular(16),
-          child: Padding(
-            padding: EdgeInsets.all(16),
-            child: Row(
-              children: [
-                // Checkbox - separate tap handler to prevent InkWell interference
-                GestureDetector(
-                  onTap: () {
-                    final filterDate = controller.selectedFilterDate;
-                    controller.togglePlanCompletion(plan, filterDate);
-                  },
-                  behavior: HitTestBehavior.opaque,
-                  child: Container(
-                    width: 32,
-                    height: 32,
-                    alignment: Alignment.center,
-                    child: Container(
-                      width: 24,
-                      height: 24,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: isCompleted
-                              ? Colors.green[600]!
-                              : Colors.grey[400]!,
-                          width: 2,
-                        ),
-                        color: isCompleted
-                            ? Colors.green[600]
-                            : Colors.transparent,
-                      ),
-                      child: isCompleted
-                          ? Icon(Icons.check, color: Colors.white, size: 16)
-                          : null,
+        ),
+        child: Row(
+          children: [
+            GestureDetector(
+              onTap: () {
+                controller.togglePlanCompletion(
+                  plan,
+                  controller.selectedFilterDate,
+                );
+              },
+              behavior: HitTestBehavior.opaque,
+              child: Container(
+                width: 32,
+                height: 32,
+                alignment: Alignment.center,
+                child: Container(
+                  width: 22,
+                  height: 22,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: isCompleted ? primaryColor : borderTint,
+                      width: 2,
                     ),
+                    color: isCompleted ? primaryColor : Colors.transparent,
                   ),
+                  child: isCompleted
+                      ? const Icon(Icons.check, color: Colors.white, size: 14)
+                      : null,
                 ),
-                SizedBox(width: 16),
-                // Content
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        plan.title,
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: isCompleted
-                              ? Colors.grey[500]
-                              : Colors.grey[800],
-                          decoration: isCompleted
-                              ? TextDecoration.lineThrough
-                              : null,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    plan.title,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: isCompleted ? onSurfaceVariant : onSurfaceColor,
+                      decoration:
+                          isCompleted ? TextDecoration.lineThrough : null,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if (plan.description.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      plan.description,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: onSurfaceVariant,
                       ),
-                      if (plan.description.isNotEmpty) ...[
-                        SizedBox(height: 4),
-                        Text(
-                          plan.description,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.access_time_rounded,
+                        size: 14,
+                        color: isOverdue ? secondaryColor : onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 4),
+                      Flexible(
+                        flex: 2,
+                        child: Text(
+                          _formatTimeRange(plan),
                           style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey[600],
+                            fontSize: 12,
+                            color: plan.effectiveDate != null
+                                ? (isOverdue
+                                    ? secondaryColor
+                                    : onSurfaceVariant)
+                                : onSurfaceVariant.withValues(alpha: 0.6),
+                            fontWeight:
+                                isOverdue ? FontWeight.w600 : FontWeight.normal,
                           ),
-                          maxLines: 2,
+                          maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
-                      ],
-                      SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.access_time_rounded,
-                            size: 14,
-                            color: Colors.grey[500],
-                          ),
-                          SizedBox(width: 4),
-                          Flexible(
-                            flex: 2,
-                            child: Text(
-                              _formatTimeRange(plan),
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: plan.effectiveDate != null
-                                    ? (isOverdue
-                                          ? Colors.red[600]
-                                          : Colors.grey[600])
-                                    : Colors.grey[400],
-                                fontWeight: isOverdue
-                                    ? FontWeight.w600
-                                    : FontWeight.normal,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          if (plan.subject.isNotEmpty) ...[
-                            SizedBox(width: 12),
-                            Icon(
-                              Icons.book_rounded,
-                              size: 14,
-                              color: Colors.grey[500],
-                            ),
-                            SizedBox(width: 4),
-                            Flexible(
-                              flex: 3,
-                              child: Text(
-                                plan.subject,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey[600],
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ],
                       ),
-                      if (plan.isRepeating) ...[
-                        SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.repeat_rounded,
-                              size: 14,
-                              color: Colors.blue[600],
+                      if (plan.subject.isNotEmpty) ...[
+                        const SizedBox(width: 12),
+                        Icon(
+                          Icons.menu_book_rounded,
+                          size: 14,
+                          color: onSurfaceVariant,
+                        ),
+                        const SizedBox(width: 4),
+                        Flexible(
+                          flex: 3,
+                          child: Text(
+                            plan.subject,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: onSurfaceVariant,
                             ),
-                            SizedBox(width: 4),
-                            Flexible(
-                              child: Text(
-                                _formatRepeatDays(plan.repeatDays),
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.blue[600],
-                                  fontWeight: FontWeight.w500,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
                       ],
                     ],
                   ),
-                ),
-                Icon(Icons.chevron_right_rounded, color: Colors.grey[400]),
-              ],
+                  if (plan.alarmsEnabled &&
+                      Get.find<PremiumService>().isPremium) ...[
+                    const SizedBox(height: 6),
+                    NotifyCountdownLabel(
+                      fireAt: plan.soonestNotificationAt(),
+                      alarmsOn: true,
+                    ),
+                  ],
+                  if (plan.isRepeating) ...[
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.repeat_rounded,
+                          size: 14,
+                          color: primaryColor,
+                        ),
+                        const SizedBox(width: 4),
+                        Flexible(
+                          child: Text(
+                            _formatRepeatDays(plan.repeatDays),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: primaryColor,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
             ),
-          ),
+            Icon(Icons.chevron_right_rounded, color: secondaryColor, size: 22),
+            const SizedBox(width: 4),
+            GestureDetector(
+              onTap: () {},
+              child: Column(
+                children: [
+                  Switch(
+                    value: plan.alarmsEnabled &&
+                        Get.find<PremiumService>().isPremium,
+                    activeThumbColor: primaryColor,
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    onChanged: (value) =>
+                        controller.togglePlanAlarms(plan, value),
+                  ),
+                  GestureDetector(
+                    onTap: () async {
+                      final premium = Get.find<PremiumService>();
+                      if (!await premium.ensurePremium(
+                        feature: 'planner alarms',
+                      )) {
+                        return;
+                      }
+                      await showPlanAlarmsSheet(
+                        plan: plan,
+                        onSave: (enabled, alarms) => controller.savePlanAlarms(
+                          plan,
+                          enabled: enabled,
+                          alarms: alarms,
+                        ),
+                      );
+                    },
+                    child: Text(
+                      'Alarm',
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: plan.alarmsEnabled &&
+                                Get.find<PremiumService>().isPremium
+                            ? primaryColor
+                            : onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -519,45 +524,49 @@ class StudyPlannerPage extends StatelessWidget {
     StudyPlannerController controller,
   ) {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.calendar_today_rounded, size: 80, color: Colors.grey[400]),
-          SizedBox(height: 20),
-          Text(
-            'No Study Plans Yet',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey[600],
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.event_note_outlined,
+              size: 56,
+              color: onSurfaceVariant,
             ),
-          ),
-          SizedBox(height: 8),
-          Text(
-            'Create your first study plan to get started',
-            style: TextStyle(fontSize: 16, color: Colors.grey[500]),
-            textAlign: TextAlign.center,
-          ),
-          SizedBox(height: 32),
-          ElevatedButton.icon(
-            onPressed: () => controller.showAddPlanDialog(),
-            icon: Icon(Icons.add, color: Colors.white),
-            label: Text(
-              'Create Plan',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
+            const SizedBox(height: 16),
+            Text(
+              'No plans for this day',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: onSurfaceColor,
+                    fontWeight: FontWeight.w700,
+                  ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Add a study block to keep your week on track',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: onSurfaceVariant,
+                  ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            FilledButton.icon(
+              onPressed: () => controller.showAddPlanDialog(),
+              icon: const Icon(Icons.add),
+              label: const Text('Create Plan'),
+              style: FilledButton.styleFrom(
+                backgroundColor: primaryColor,
+                foregroundColor: Colors.white,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
               ),
             ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue[600],
-              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -569,7 +578,6 @@ class StudyPlannerPage extends StatelessWidget {
       return 'No date set';
     }
 
-    // Use startDate/endDate if available, otherwise fall back to dueDate
     final startDate = plan.startDate;
     final endDate = plan.endDate;
     final dueDate = plan.dueDate;
@@ -580,18 +588,15 @@ class StudyPlannerPage extends StatelessWidget {
 
       final now = DateTime.now();
       final today = DateTime(now.year, now.month, now.day);
-      final startDateOnly = DateTime(
-        startDate.year,
-        startDate.month,
-        startDate.day,
-      );
+      final startDateOnly =
+          DateTime(startDate.year, startDate.month, startDate.day);
 
       if (startDateOnly == today) {
         return 'Today, $startTime - $endTime';
-      } else if (startDateOnly == today.add(Duration(days: 1))) {
+      } else if (startDateOnly == today.add(const Duration(days: 1))) {
         return 'Tomorrow, $startTime - $endTime';
       } else {
-        final daysOfWeek = [
+        const daysOfWeek = [
           'Monday',
           'Tuesday',
           'Wednesday',
@@ -604,13 +609,10 @@ class StudyPlannerPage extends StatelessWidget {
         return '$dayOfWeek, ${startDate.day}/${startDate.month}/${startDate.year} $startTime - $endTime';
       }
     } else if (startDate != null) {
-      // Only start time
       return _formatDateTime(startDate);
     } else if (endDate != null) {
-      // Only end time
       return _formatDateTime(endDate);
     } else if (dueDate != null) {
-      // Fall back to dueDate
       return _formatDateTime(dueDate);
     }
 
@@ -622,7 +624,7 @@ class StudyPlannerPage extends StatelessWidget {
     final today = DateTime(now.year, now.month, now.day);
     final date = DateTime(dateTime.year, dateTime.month, dateTime.day);
 
-    final daysOfWeek = [
+    const daysOfWeek = [
       'Monday',
       'Tuesday',
       'Wednesday',
@@ -636,7 +638,7 @@ class StudyPlannerPage extends StatelessWidget {
 
     if (date == today) {
       return 'Today, $dayOfWeek $time';
-    } else if (date == today.add(Duration(days: 1))) {
+    } else if (date == today.add(const Duration(days: 1))) {
       return 'Tomorrow, $dayOfWeek $time';
     } else {
       return '$dayOfWeek, ${dateTime.day}/${dateTime.month}/${dateTime.year} $time';
@@ -646,7 +648,7 @@ class StudyPlannerPage extends StatelessWidget {
   String _formatRepeatDays(List<int> days) {
     if (days.isEmpty) return '';
 
-    final dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     final sortedDays = List<int>.from(days)..sort();
 
     if (sortedDays.length == 7) {

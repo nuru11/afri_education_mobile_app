@@ -10,6 +10,7 @@ Color secondaryVariant = const Color(0xFF059669); // Emerald-600
 Color surfaceColor = const Color(0xFFFAFAFA); // Neutral-50
 Color backgroundColor = const Color(0xFFFFFFFF); // White
 Color headerBackgroundColor = const Color(0xFFFFFFFF); // White
+const Color borderColor = Color(0xFFE5E7EB); // Gray-200
 const errorColor = Color(0xFFEF4444); // Red-500
 const warningColor = Color(0xFFF59E0B); // Amber-500
 const successColor = Color(0xFF10B981); // Emerald-500

@@ -1,5 +1,6 @@
 export 'ui/app_back_leading.dart';
 export 'ui/themes/light_theme.dart';
+export 'ui/app_page_scaffold.dart';
 export 'ui/custom_list_tile.dart';
 export 'ui/custom_cards.dart';
 export 'ui/custom_buttons.dart';

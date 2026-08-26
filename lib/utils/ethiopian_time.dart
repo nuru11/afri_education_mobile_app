@@ -34,7 +34,9 @@ class EthiopianTime {
 
   /// Convert a Western-stored [DateTime] clock to Ethiopian, then format.
   static String formatWesternDateTimeClock(DateTime dateTime) {
-    return formatTimeOfDay(toEthiopian(TimeOfDay.fromDateTime(dateTime)));
+    return formatTimeOfDay(
+      toEthiopian(TimeOfDay.fromDateTime(dateTime.toLocal())),
+    );
   }
 
   /// 12-hour time picker with Day/Night period labels (not AM/PM).

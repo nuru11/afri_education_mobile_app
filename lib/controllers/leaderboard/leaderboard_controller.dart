@@ -128,6 +128,12 @@ class LeaderboardController extends GetxController {
       return;
     }
 
+    if (!isCurrentUserAuthenticated) {
+      _competitions = [];
+      update();
+      return;
+    }
+
     _isLoadingCompetitions = true;
     update();
 
@@ -185,6 +191,12 @@ class LeaderboardController extends GetxController {
     // Prevent multiple simultaneous loads
     if (_isLoadingExams) {
       logger.w('loadExams: Already loading, skipping');
+      return;
+    }
+
+    if (!isCurrentUserAuthenticated) {
+      _exams = [];
+      update();
       return;
     }
 

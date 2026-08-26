@@ -446,7 +446,7 @@ class SupportPage extends StatelessWidget {
   }
 
   void _launchTelegram() async {
-    const telegramUrl = 'https://t.me/Remedial_Tricks_Admin';
+    const telegramUrl = 'https://t.me/entrance_tricks_admin';
     final uri = Uri.parse(telegramUrl);
 
     try {
@@ -471,7 +471,7 @@ class SupportPage extends StatelessWidget {
   }
 
   void _launchEmail() async {
-    const emailUrl = 'mailto:remedialtricks@gmail.com?subject=Support Request';
+    const emailUrl = 'mailto:entrancetricks@gmail.com?subject=Support Request';
     final uri = Uri.parse(emailUrl);
 
     try {
@@ -496,7 +496,7 @@ class SupportPage extends StatelessWidget {
   }
 
   void _launchPhone() async {
-    const phoneUrl = 'tel:0927052140';
+    const phoneUrl = 'tel:0920308061';
     final uri = Uri.parse(phoneUrl);
 
     try {
