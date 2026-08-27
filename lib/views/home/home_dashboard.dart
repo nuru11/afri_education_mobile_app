@@ -1399,7 +1399,6 @@ class HomeDashboard extends StatelessWidget {
             children: [
               _buildTopBar(context, controller),
               // _buildPromotionalBanner(context, controller),
-              _buildHomeSearchBar(context, controller),
               if (controller.hasSearchQuery)
                 Expanded(child: _buildGroupedSearchResults(context, controller))
               else
@@ -1411,27 +1410,12 @@ class HomeDashboard extends StatelessWidget {
     );
   }
 
-  Widget _buildHomeSearchBar(
-    BuildContext context,
-    HomeDashboardController controller,
-  ) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-      child: SearchTextField(
-        controller: controller.homeSearchController,
-        hint: 'Search chapters, exams, videos, worksheets...',
-        onChanged: controller.updateSearchQuery,
-        onClear: controller.clearSearch,
-      ),
-    );
-  }
-
   Widget _buildTopBar(
     BuildContext context,
     HomeDashboardController controller,
   ) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
         children: [
           IconButton(
@@ -1443,9 +1427,17 @@ class HomeDashboard extends StatelessWidget {
             constraints: BoxConstraints(),
             mouseCursor: SystemMouseCursors.click,
           ),
-
-          Spacer(),
-
+          const SizedBox(width: 10),
+          Expanded(
+            child: SearchTextField(
+              controller: controller.homeSearchController,
+              hint: 'Search courses, exams...',
+              compact: true,
+              onChanged: controller.updateSearchQuery,
+              onClear: controller.clearSearch,
+            ),
+          ),
+          const SizedBox(width: 10),
           Row(
             children: [
               IconButton(
@@ -1623,10 +1615,10 @@ class HomeDashboard extends StatelessWidget {
     final screenWidth = MediaQuery.sizeOf(context).width;
     final isCompact = screenWidth < 360;
     final isTablet = screenWidth >= 768;
-    final width = (screenWidth * (isCompact ? 0.42 : 0.38))
-        .clamp(148.0, isTablet ? 200.0 : 176.0)
+    final width = (screenWidth * (isCompact ? 0.34 : 0.30))
+        .clamp(128.0, isTablet ? 168.0 : 152.0)
         .toDouble();
-    return (width: width, height: width / 0.78);
+    return (width: width, height: width / 0.92);
   }
 
   Widget _buildFeaturedUpdatesBar(
@@ -1639,15 +1631,15 @@ class HomeDashboard extends StatelessWidget {
     final cardSize = _featuredUpdateCardSize(context);
 
     return Container(
-      margin: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+      margin: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [const Color(0xFFF8FAFC), const Color(0xFFF1F5F9)],
         ),
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: const Color(0xFFCBD5E1).withValues(alpha: 0.9),
         ),
@@ -1665,53 +1657,47 @@ class HomeDashboard extends StatelessWidget {
           Row(
             children: [
               Container(
-                width: 36,
-                height: 36,
+                width: 28,
+                height: 28,
                 decoration: BoxDecoration(
                   color: const Color(0xFFE2E8F0),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Icon(
                   Icons.campaign_rounded,
-                  size: 20,
+                  size: 16,
                   color: Color(0xFF334155),
                 ),
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Latest News & Exams',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.black87,
-                      ),
-                    ),
-                    Text(
-                      'Newest posts and exams from admin',
-                      style: TextStyle(fontSize: 12, color: Colors.grey[700]),
-                    ),
-                  ],
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  'Latest News',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.black87,
+                  ),
                 ),
               ),
               IconButton(
                 tooltip: 'Refresh updates',
                 onPressed: () => controller.loadFeaturedUpdates(showLoader: false),
+                visualDensity: VisualDensity.compact,
                 style: IconButton.styleFrom(
                   backgroundColor: const Color(0xFFE2E8F0),
+                  minimumSize: const Size(32, 32),
+                  padding: const EdgeInsets.all(6),
                 ),
                 icon: const Icon(
                   Icons.refresh_rounded,
-                  size: 20,
+                  size: 18,
                   color: Color(0xFF334155),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           if (isLoading)
             SizedBox(
               height: cardSize.height,
@@ -1720,7 +1706,7 @@ class HomeDashboard extends StatelessWidget {
           else if (featuredUpdates.isEmpty)
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 14),
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(14),
@@ -1867,6 +1853,98 @@ class HomeDashboard extends StatelessWidget {
     );
   }
 
+  Widget _buildGradeTabs(
+    BuildContext context,
+    HomeDashboardController controller,
+  ) {
+    return Container(
+      height: 50,
+      margin: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        itemCount: controller.grades.length,
+        itemBuilder: (context, index) {
+          final grade = controller.grades[index];
+          final isSelected = controller.selectedGradeIndex == index;
+
+          return AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeInOut,
+            margin: const EdgeInsets.only(right: 12),
+            child: GestureDetector(
+              onTap: () => controller.selectGrade(index),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeInOut,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  gradient: isSelected
+                      ? const LinearGradient(
+                          colors: [Color(0xFF667eea), Color(0xFF764ba2)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        )
+                      : null,
+                  color: isSelected ? null : Colors.grey[50],
+                  borderRadius: BorderRadius.circular(25),
+                  border: Border.all(
+                    color: isSelected
+                        ? Colors.transparent
+                        : Colors.grey.withValues(alpha: 0.3),
+                    width: 1.5,
+                  ),
+                  boxShadow: isSelected
+                      ? [
+                          BoxShadow(
+                            color: const Color(0xFF667eea).withValues(alpha: 0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          ),
+                        ]
+                      : [
+                          BoxShadow(
+                            color: Colors.grey.withValues(alpha: 0.1),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (isSelected) ...[
+                      const Icon(
+                        Icons.check_circle,
+                        size: 16,
+                        color: Colors.white,
+                      ),
+                      const SizedBox(width: 6),
+                    ],
+                    Text(
+                      grade.name,
+                      style: TextStyle(
+                        color: isSelected ? Colors.white : Colors.grey[700],
+                        fontWeight: isSelected
+                            ? FontWeight.w600
+                            : FontWeight.w500,
+                        fontSize: 14,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   Widget _buildSubjectSelection(
     BuildContext context,
     HomeDashboardController controller,
@@ -1876,6 +1954,7 @@ class HomeDashboard extends StatelessWidget {
 
     return RefreshIndicator(
       onRefresh: () async {
+        await controller.loadGrades();
         await controller.loadSubjects();
         await controller.loadFeaturedUpdates(showLoader: false);
       },
@@ -1890,6 +1969,10 @@ class HomeDashboard extends StatelessWidget {
           SliverToBoxAdapter(
             child: _buildFeaturedUpdatesBar(context, controller),
           ),
+          if (controller.showGradeTabs)
+            SliverToBoxAdapter(
+              child: _buildGradeTabs(context, controller),
+            ),
           const SliverToBoxAdapter(
             child: Padding(
               padding: EdgeInsets.symmetric(horizontal: 20),

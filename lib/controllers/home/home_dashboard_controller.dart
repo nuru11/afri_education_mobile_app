@@ -64,13 +64,30 @@ class HomeDashboardController extends GetxController {
   final Map<int, Subject> _subjectById = {};
   final Map<int, Chapter> _chapterById = {};
 
+  List<Grade> _grades = [];
+  List<Grade> get grades => _grades;
+  int _selectedGradeIndex = 0;
+  int get selectedGradeIndex => _selectedGradeIndex;
+  bool get showGradeTabs => _user == null && _grades.isNotEmpty;
+
   User? _user;
+
+  int? get _effectiveGradeId {
+    if (_user != null) return _user!.grade.id;
+    if (_grades.isNotEmpty &&
+        _selectedGradeIndex >= 0 &&
+        _selectedGradeIndex < _grades.length) {
+      return _grades[_selectedGradeIndex].id;
+    }
+    return null;
+  }
 
   @override
   void onInit() async {
     super.onInit();
 
     _user = await HiveUserStorage().getUser();
+    await _prepareGuestGrades();
     loadSubjects();
     loadAppHeader();
     loadFeaturedUpdates();
@@ -79,9 +96,7 @@ class HomeDashboardController extends GetxController {
     InternetConnection().onStatusChange.listen((event) {
       logger.i('Internet status changed: $event');
       if (event == InternetStatus.connected) {
-        loadSubjects();
-        loadAppHeader();
-        loadFeaturedUpdates(showLoader: false);
+        _onReconnect();
       }
     });
     HiveAppHeaderStorage().listen((event) {
@@ -91,10 +106,7 @@ class HomeDashboardController extends GetxController {
 
     HiveUserStorage().listen((event) {
       _user = event;
-      loadSubjects();
-      loadAppHeader();
-      loadFeaturedUpdates();
-      update();
+      _onUserChanged();
     }, 'user');
   }
 
@@ -113,11 +125,59 @@ class HomeDashboardController extends GetxController {
     );
   }
 
+  Future<void> _prepareGuestGrades() async {
+    if (_user != null) {
+      _grades = [];
+      _selectedGradeIndex = 0;
+      return;
+    }
+    await loadGrades();
+  }
+
+  Future<void> _onUserChanged() async {
+    await _prepareGuestGrades();
+    loadSubjects();
+    loadAppHeader();
+    loadFeaturedUpdates();
+    update();
+  }
+
+  Future<void> _onReconnect() async {
+    await _prepareGuestGrades();
+    loadSubjects();
+    loadAppHeader();
+    loadFeaturedUpdates(showLoader: false);
+  }
+
+  Future<void> loadGrades() async {
+    if (_user != null) return;
+    try {
+      _grades = await GradeService().getGrades(backendAppPackage);
+      if (_selectedGradeIndex >= _grades.length) {
+        _selectedGradeIndex = 0;
+      }
+      update();
+    } catch (e) {
+      logger.e(e);
+    }
+  }
+
+  void selectGrade(int index) {
+    if (index == _selectedGradeIndex ||
+        index < 0 ||
+        index >= _grades.length) {
+      return;
+    }
+    _selectedGradeIndex = index;
+    update();
+    loadSubjects();
+  }
+
   void loadAppHeader() async {
     _appHeader = await HiveAppHeaderStorage().getCurrentHeaderText();
     update();
     try {
-      final gradeId = _user?.grade.id;
+      final gradeId = _effectiveGradeId;
       final appHeaderTexts = await AppHeaderTextService().getAppHeaderTexts(
         gradeId ?? 0,
       );
@@ -133,7 +193,7 @@ class HomeDashboardController extends GetxController {
     update();
     try {
       logger.i('Loading subjects from api');
-      final gradeId = _user?.grade.id;
+      final gradeId = _effectiveGradeId;
       final device = await UserDevice.getDeviceInfo(_user?.phoneNumber ?? '');
 
       _subjects = await SubjectsService().getSubjects(

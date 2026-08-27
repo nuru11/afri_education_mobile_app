@@ -238,6 +238,7 @@ class SearchTextField extends StatelessWidget {
   final void Function(String)? onSubmitted;
   final VoidCallback? onClear;
   final bool enabled;
+  final bool compact;
 
   const SearchTextField({
     super.key,
@@ -247,6 +248,7 @@ class SearchTextField extends StatelessWidget {
     this.onSubmitted,
     this.onClear,
     this.enabled = true,
+    this.compact = false,
   });
 
   @override
@@ -256,19 +258,21 @@ class SearchTextField extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(compact ? 12 : 16),
       ),
       child: TextField(
         controller: controller,
         onChanged: onChanged,
         onSubmitted: onSubmitted,
         enabled: enabled,
+        style: compact ? const TextStyle(fontSize: 14) : null,
         decoration: InputDecoration(
           hintText: hint ?? 'Search...',
-          prefixIcon: Icon(Icons.search),
+          prefixIcon: Icon(Icons.search, size: compact ? 20 : 24),
           suffixIcon: controller?.text.isNotEmpty == true
               ? IconButton(
-                  icon: Icon(Icons.clear),
+                  icon: Icon(Icons.clear, size: compact ? 18 : 24),
+                  visualDensity: compact ? VisualDensity.compact : null,
                   onPressed:
                       onClear ??
                       () {
@@ -278,7 +282,11 @@ class SearchTextField extends StatelessWidget {
                 )
               : null,
           border: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          isDense: compact,
+          contentPadding: EdgeInsets.symmetric(
+            horizontal: compact ? 12 : 16,
+            vertical: compact ? 8 : 16,
+          ),
         ),
       ),
     );
