@@ -56,9 +56,16 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
             Center(
               child: Obx(() {
                 if (controller.isInitialized.value) {
-                  return AspectRatio(
-                    aspectRatio: controller.videoController.value.aspectRatio,
-                    child: VideoPlayer(controller.videoController),
+                  final reported =
+                      controller.videoController.value.aspectRatio;
+                  final aspectRatio =
+                      reported.isFinite && reported > 0 ? reported : 16 / 9;
+                  return FittedBox(
+                    fit: BoxFit.contain,
+                    child: AspectRatio(
+                      aspectRatio: aspectRatio,
+                      child: VideoPlayer(controller.videoController),
+                    ),
                   );
                 }
                 return _buildStatusOverlay(theme);
