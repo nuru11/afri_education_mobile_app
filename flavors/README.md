@@ -8,6 +8,9 @@ This repo builds multiple store apps from one codebase using Flutter flavors.
 |--------|----------|-----------------|---------------|
 | `vector_academy` | Entrance Tricks | `com.vector_academy.app` | `com.vectoracademy.app` |
 | `exitexam` | Ethio Exit Exam | `com.ethioexitexam.app` | `com.ethioexitexam.app` |
+| `remedial` | Remedial Tricks | `com.remedialtricks.app` | `com.remedial_tricks.app` |
+
+Remedial backend `app_package` is `com.remedial_tricks.app` (same as iOS). Android store ID stays `com.remedialtricks.app`.
 
 ## Run / build
 
@@ -15,10 +18,12 @@ This repo builds multiple store apps from one codebase using Flutter flavors.
 # Run
 .\scripts\run.ps1 exitexam
 .\scripts\run.ps1 vector_academy
+.\scripts\run.ps1 remedial
 
 # Release builds
 .\scripts\build.ps1 exitexam appbundle
 .\scripts\build.ps1 vector_academy apk
+.\scripts\build.ps1 remedial appbundle
 ```
 
 Or directly:
@@ -26,15 +31,23 @@ Or directly:
 ```bash
 flutter run --flavor exitexam --dart-define=FLAVOR=exitexam
 flutter build appbundle --flavor exitexam --dart-define=FLAVOR=exitexam
+flutter run --flavor remedial --dart-define=FLAVOR=remedial
+flutter build appbundle --flavor remedial --dart-define=FLAVOR=remedial
 ```
 
 ## Android signing
 
-1. Copy `android/key_exitexam.properties.example` to `android/key_exitexam.properties`
-2. Fill in keystore credentials
-3. Place `upload-keystore_exitexam.jks` in `android/app/`
+Release builds use the flavor-specific keystore (`productFlavors.signingConfig`). Debug always uses the debug keystore.
 
-Existing `android/key.properties` is used for `vector_academy`.
+| Flavor | Properties file | Keystore in `android/app/` |
+|--------|-----------------|----------------------------|
+| `vector_academy` | `android/key.properties` | `upload-keystore_entrance.jks` |
+| `exitexam` | `android/key_exitexam.properties` | `upload-keystore_exitexam.jks` |
+| `remedial` | `android/key_remedial.properties` | `upload-keystore_remedial.jks` |
+
+1. Copy the matching `android/key_<flavor>.properties.example` to `android/key_<flavor>.properties` (except `vector_academy`, which uses `key.properties`)
+2. Fill in keystore credentials
+3. Place the `.jks` file in `android/app/`
 
 ## Add a new app (checklist)
 

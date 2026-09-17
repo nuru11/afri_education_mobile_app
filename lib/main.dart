@@ -182,16 +182,6 @@ Future<void> _registerAndroidVideoBackend() async {
 
   try {
     final info = await DeviceInfoPlugin().androidInfo;
-
-    // Android 8/9 (e.g. Infinix X606B): fvp FFmpeg-first often plays audio with
-    // a black picture. Official ExoPlayer uses MediaCodec → Surface instead.
-    if (info.version.sdkInt < 29) {
-      logger.d(
-        'Skipping fvp on Android SDK ${info.version.sdkInt}; using ExoPlayer',
-      );
-      return;
-    }
-
     final fingerprint = [
       info.manufacturer,
       info.brand,
@@ -209,7 +199,7 @@ Future<void> _registerAndroidVideoBackend() async {
       'sc98',
       'sc83',
     ];
-    final isLowEnd =
+    final useSoftwareFirst =
         info.isLowRamDevice ||
         (info.physicalRamSize > 0 && info.physicalRamSize <= 3072) ||
         lowEndMarkers.any(fingerprint.contains);
@@ -217,13 +207,12 @@ Future<void> _registerAndroidVideoBackend() async {
     fvp.registerWith(
       options: {
         'platforms': ['android'],
-        'video.decoders': isLowEnd
-            ? ['AMediaCodec:surface=0:copy=1', 'FFmpeg']
+        'video.decoders': useSoftwareFirst
+            ? ['FFmpeg', 'AMediaCodec']
             : ['AMediaCodec', 'FFmpeg'],
-        if (isLowEnd) ...{'maxWidth': 1280, 'maxHeight': 720},
       },
     );
-    logger.d('Registered fvp video backend (lowEnd=$isLowEnd)');
+    logger.d('Registered fvp video backend (softwareFirst=$useSoftwareFirst)');
   } catch (e) {
     fvp.registerWith(
       options: {

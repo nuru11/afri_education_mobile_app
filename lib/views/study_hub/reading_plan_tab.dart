@@ -51,7 +51,7 @@ class ReadingPlanTab extends StatelessWidget {
                       contentPadding: EdgeInsets.zero,
                       leading: const Icon(Icons.telegram),
                       title: const Text('Telegram'),
-                      subtitle: const Text(supportTelegramHandle),
+                      subtitle: Text(supportTelegramHandle),
                       onTap: () => _open(supportTelegramUrl, 'Telegram'),
                     ),
                     ListTile(

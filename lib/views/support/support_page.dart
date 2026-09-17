@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:vector_academy/flavors/flavor_config.dart';
 import 'package:vector_academy/utils/navigation_utils.dart';
 
 class SupportPage extends StatelessWidget {
@@ -446,8 +447,7 @@ class SupportPage extends StatelessWidget {
   }
 
   void _launchTelegram() async {
-    const telegramUrl = 'https://t.me/entrance_tricks_admin';
-    final uri = Uri.parse(telegramUrl);
+    final uri = Uri.parse(FlavorConfig.supportTelegramUrl);
 
     try {
       if (await canLaunchUrl(uri)) {

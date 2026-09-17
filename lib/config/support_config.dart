@@ -1,5 +1,7 @@
-const supportTelegramHandle = '@entrance_tricks_admin';
-const supportTelegramUrl = 'https://t.me/entrance_tricks_admin';
+import 'package:vector_academy/flavors/flavor_config.dart';
+
+String get supportTelegramHandle => FlavorConfig.supportTelegramHandle;
+String get supportTelegramUrl => FlavorConfig.supportTelegramUrl;
 const supportPhoneNumber = '0920308061';
 const supportPhoneUrl = 'tel:0920308061';
 const supportEmail = 'entrancetricks@gmail.com';

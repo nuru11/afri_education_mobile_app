@@ -4,11 +4,15 @@ class FlavorValues {
     required this.appTitle,
     required this.backendAppPackage,
     required this.logoAsset,
+    required this.supportTelegramHandle,
+    required this.supportTelegramUrl,
   });
 
   final String appTitle;
   final String backendAppPackage;
   final String logoAsset;
+  final String supportTelegramHandle;
+  final String supportTelegramUrl;
 }
 
 const _flavorName = String.fromEnvironment(
@@ -21,11 +25,22 @@ const _flavors = <String, FlavorValues>{
     appTitle: 'Entrance Tricks',
     backendAppPackage: 'com.vector_academy.app',
     logoAsset: 'assets/images/logo.png',
+    supportTelegramHandle: '@entrance_tricks_admin',
+    supportTelegramUrl: 'https://t.me/entrance_tricks_admin',
   ),
   'exitexam': FlavorValues(
     appTitle: 'Ethio Exit Exam',
     backendAppPackage: 'com.ethioexitexam.app',
     logoAsset: 'assets/images/logo_exitexam.png',
+    supportTelegramHandle: '@entrance_tricks_admin',
+    supportTelegramUrl: 'https://t.me/entrance_tricks_admin',
+  ),
+  'remedial': FlavorValues(
+    appTitle: 'Remedial Tricks',
+    backendAppPackage: 'com.remedial_tricks.app',
+    logoAsset: 'assets/images/logo_remedial.png',
+    supportTelegramHandle: '@Remedial_Tricks_Admin',
+    supportTelegramUrl: 'https://t.me/Remedial_Tricks_Admin',
   ),
 };
 
@@ -42,4 +57,8 @@ class FlavorConfig {
   static String get backendAppPackage => current.backendAppPackage;
 
   static String get logoAsset => current.logoAsset;
+
+  static String get supportTelegramHandle => current.supportTelegramHandle;
+
+  static String get supportTelegramUrl => current.supportTelegramUrl;
 }

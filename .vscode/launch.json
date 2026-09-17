@@ -20,6 +20,16 @@
         "exitexam",
         "--dart-define=FLAVOR=exitexam"
       ]
+    },
+    {
+      "name": "remedial (debug)",
+      "request": "launch",
+      "type": "dart",
+      "args": [
+        "--flavor",
+        "remedial",
+        "--dart-define=FLAVOR=remedial"
+      ]
     }
   ]
 }

@@ -19,6 +19,7 @@ fun loadKeystoreProperties(fileName: String): Properties {
 
 val vectorKeystoreProperties = loadKeystoreProperties("key.properties")
 val exitexamKeystoreProperties = loadKeystoreProperties("key_exitexam.properties")
+val remedialKeystoreProperties = loadKeystoreProperties("key_remedial.properties")
 
 android {
     namespace = "com.vector_academy.app"
@@ -65,6 +66,14 @@ android {
                 storePassword = exitexamKeystoreProperties["storePassword"] as String
             }
         }
+        if (remedialKeystoreProperties.isNotEmpty()) {
+            create("remedialRelease") {
+                keyAlias = remedialKeystoreProperties["keyAlias"] as String
+                keyPassword = remedialKeystoreProperties["keyPassword"] as String
+                storeFile = remedialKeystoreProperties["storeFile"]?.let { file(it) }
+                storePassword = remedialKeystoreProperties["storePassword"] as String
+            }
+        }
     }
 
     flavorDimensions += "app"
@@ -73,11 +82,19 @@ android {
             dimension = "app"
             applicationId = "com.vector_academy.app"
             resValue("string", "app_name", "Entrance Tricks")
+            signingConfigs.findByName("vectorAcademyRelease")?.let { signingConfig = it }
         }
         create("exitexam") {
             dimension = "app"
             applicationId = "com.ethioexitexam.app"
             resValue("string", "app_name", "Ethio Exit Exam")
+            signingConfigs.findByName("exitexamRelease")?.let { signingConfig = it }
+        }
+        create("remedial") {
+            dimension = "app"
+            applicationId = "com.remedialtricks.app"
+            resValue("string", "app_name", "Remedial Tricks")
+            signingConfigs.findByName("remedialRelease")?.let { signingConfig = it }
         }
     }
 
@@ -88,11 +105,7 @@ android {
         release {
             isMinifyEnabled = false
             isShrinkResources = false
-            signingConfig = if (vectorKeystoreProperties.isNotEmpty()) {
-                signingConfigs.getByName("vectorAcademyRelease")
-            } else {
-                signingConfigs.getByName("debug")
-            }
+            // Do not set signingConfig here: it would override per-flavor release keys.
         }
     }
 }
