@@ -48,7 +48,8 @@ const _flavors = <String, FlavorValues>{
 class FlavorConfig {
   FlavorConfig._();
 
-  static final FlavorValues current = _flavors[_flavorName] ?? _flavors['vector_academy']!;
+  static final FlavorValues current =
+      _flavors[_flavorName] ?? _flavors['vector_academy']!;
 
   static String get flavorName => _flavorName;
 
@@ -61,4 +62,15 @@ class FlavorConfig {
   static String get supportTelegramHandle => current.supportTelegramHandle;
 
   static String get supportTelegramUrl => current.supportTelegramUrl;
+
+  static const _parentModeFlavors = {'vector_academy', 'ministry'};
+  static const _parentModePackages = {
+    'com.vector_academy.app',
+    'com.ministry_tricks.app',
+  };
+
+  /// Entrance today, and Ministry once that flavor uses its backend package.
+  static bool get supportsParentMode =>
+      _parentModeFlavors.contains(flavorName) ||
+      _parentModePackages.contains(backendAppPackage);
 }

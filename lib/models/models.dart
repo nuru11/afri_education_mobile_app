@@ -24,3 +24,4 @@ export 'agent.dart';
 export 'redemption.dart';
 export 'referral_validation.dart';
 export 'reading_premium.dart';
+export 'parent_link.dart';

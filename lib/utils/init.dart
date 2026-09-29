@@ -9,6 +9,7 @@ import 'package:vector_academy/services/api/grades.dart';
 import 'package:vector_academy/services/notification_service.dart'
     as local_notif;
 import 'package:flutter_tex/flutter_tex.dart';
+import 'package:vector_academy/controllers/parent/parent_mode_controller.dart';
 
 Future<void> initialize() async {
   await TeXRenderingServer.start();
@@ -26,6 +27,7 @@ Future<void> initialize() async {
   await HiveAppHeaderStorage().init();
   await HiveNewsStorage().init();
   await HiveLeaderboardCacheStorage().init();
+  await HiveReadingPlanStorage().init();
   await Get.putAsync(() async {
     final auth = AuthService();
     await auth.loadUser();
@@ -35,6 +37,7 @@ Future<void> initialize() async {
   Get.put(GradeService());
 
   await ConfigPreference.init();
+  Get.put(ParentModeController());
 
   // Register notification service (permissions requested in-context from Study Planner)
   await local_notif.LocalNotificationService.initializePlugin();

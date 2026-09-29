@@ -428,7 +428,7 @@ class _SubjectPageState extends State<SubjectPage>
                                 ),
                               ),
                               child: Text(
-                                '${subject.chapters.length} Chapters',
+                                '${subject.chapters.where((chapter) => chapter.isNumbered).length} Chapters',
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontSize: 10, // Reduced from 11

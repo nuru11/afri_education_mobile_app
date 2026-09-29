@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:vector_academy/controllers/controllers.dart';
+import 'package:vector_academy/flavors/flavor_config.dart';
 import 'package:vector_academy/utils/navigation_utils.dart';
 import 'package:vector_academy/views/views.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -188,135 +189,146 @@ class ProfilePage extends StatelessWidget {
             ),
             SizedBox(height: 40),
           ] else ...[
-          // Profile Information
-          Text(
-            'Profile Information',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey[800],
-            ),
-          ),
-          SizedBox(height: 20),
-
-          _buildProfileField(
-            context,
-            Icons.person_outline,
-            "Full Name",
-            controller.fullName,
-          ),
-
-          SizedBox(height: 20),
-
-          _buildProfileField(
-            context,
-            Icons.school_outlined,
-            "Class/Grade",
-            controller.user?.grade.name ?? '',
-          ),
-
-          SizedBox(height: 20),
-
-          _buildProfileField(
-            context,
-            Icons.phone_outlined,
-            "Phone Number",
-            controller.user?.phoneNumber ?? '',
-          ),
-
-          SizedBox(height: 40),
-
-          // Agent Section
-          Text(
-            'Become an Agent',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey[800],
-            ),
-          ),
-          SizedBox(height: 20),
-
-          _buildActionButton(
-            context,
-            Icons.business_center,
-            "Agent Program",
-            "Apply to become an agent and earn coins",
-            () => Get.toNamed(VIEWS.agentStatus.path),
-          ),
-
-          SizedBox(height: 40),
-
-          // Action Buttons
-          Text(
-            'Account',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey[800],
-            ),
-          ),
-          SizedBox(height: 20),
-
-          _buildActionButton(
-            context,
-            Icons.help_outline,
-            "Help & Support",
-            "Get help and contact support",
-            () => controller.openSupport(),
-          ),
-
-          SizedBox(height: 12),
-
-          _buildActionButton(
-            context,
-            Icons.info_outline,
-            "App Information",
-            "Learn more about the app",
-            () => controller.openAppInfo(),
-          ),
-
-          SizedBox(height: 32),
-
-          // Delete Account Button
-          _buildActionButton(
-            context,
-            Icons.delete_forever,
-            "Delete Account",
-            "Permanently delete your account and data",
-            () => controller.showDeleteAccountDialog(),
-            isDestructive: true,
-          ),
-
-          SizedBox(height: 20),
-
-          // Logout Button
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: () => controller.logout(),
-              icon: Icon(Icons.logout, color: Colors.white),
-              label: Text(
-                'Logout',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red[600],
-                foregroundColor: Colors.white,
-                padding: EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                elevation: 2,
+            // Profile Information
+            Text(
+              'Profile Information',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey[800],
               ),
             ),
-          ),
+            SizedBox(height: 20),
 
-          SizedBox(height: 20),
+            _buildProfileField(
+              context,
+              Icons.person_outline,
+              "Full Name",
+              controller.fullName,
+            ),
+
+            SizedBox(height: 20),
+
+            _buildProfileField(
+              context,
+              Icons.school_outlined,
+              "Class/Grade",
+              controller.user?.grade.name ?? '',
+            ),
+
+            SizedBox(height: 20),
+
+            _buildProfileField(
+              context,
+              Icons.phone_outlined,
+              "Phone Number",
+              controller.user?.phoneNumber ?? '',
+            ),
+
+            SizedBox(height: 40),
+
+            // Agent Section
+            Text(
+              'Become an Agent',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey[800],
+              ),
+            ),
+            SizedBox(height: 20),
+
+            _buildActionButton(
+              context,
+              Icons.business_center,
+              "Agent Program",
+              "Apply to become an agent and earn coins",
+              () => Get.toNamed(VIEWS.agentStatus.path),
+            ),
+
+            SizedBox(height: 40),
+
+            // Action Buttons
+            Text(
+              'Account',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey[800],
+              ),
+            ),
+            SizedBox(height: 20),
+
+            if (FlavorConfig.supportsParentMode) ...[
+              _buildActionButton(
+                context,
+                Icons.family_restroom,
+                "Parent Mode",
+                "View your child's learning progress",
+                () => Get.to(() => const ParentLinkPage()),
+              ),
+              SizedBox(height: 12),
+            ],
+
+            _buildActionButton(
+              context,
+              Icons.help_outline,
+              "Help & Support",
+              "Get help and contact support",
+              () => controller.openSupport(),
+            ),
+
+            SizedBox(height: 12),
+
+            _buildActionButton(
+              context,
+              Icons.info_outline,
+              "App Information",
+              "Learn more about the app",
+              () => controller.openAppInfo(),
+            ),
+
+            SizedBox(height: 32),
+
+            // Delete Account Button
+            _buildActionButton(
+              context,
+              Icons.delete_forever,
+              "Delete Account",
+              "Permanently delete your account and data",
+              () => controller.showDeleteAccountDialog(),
+              isDestructive: true,
+            ),
+
+            SizedBox(height: 20),
+
+            // Logout Button
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () => controller.logout(),
+                icon: Icon(Icons.logout, color: Colors.white),
+                label: Text(
+                  'Logout',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red[600],
+                  foregroundColor: Colors.white,
+                  padding: EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 2,
+                ),
+              ),
+            ),
+
+            SizedBox(height: 20),
           ],
         ],
       ),

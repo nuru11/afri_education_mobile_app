@@ -1377,6 +1377,7 @@ import "package:vector_academy/services/services.dart";
 import 'package:vector_academy/views/views.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:vector_academy/flavors/flavor_config.dart';
 
 class HomeDashboard extends StatelessWidget {
   HomeDashboard({super.key});
@@ -1388,6 +1389,11 @@ class HomeDashboard extends StatelessWidget {
     Get.put(HomeDashboardController());
     Get.put(NavigationDrawerController());
     Get.put(NotificationsController());
+    if (FlavorConfig.supportsParentMode) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        maybePromptParentRequests();
+      });
+    }
 
     return GetBuilder<HomeDashboardController>(
       builder: (controller) => Scaffold(
@@ -2119,7 +2125,7 @@ class HomeDashboard extends StatelessWidget {
         return _buildSearchResultTile(
           title: chapter.name,
           subtitle:
-              '$subjectName • Chapter ${chapter.chapterNumber}${(chapter.description ?? '').isNotEmpty ? ' • ${chapter.description}' : ''}',
+              '$subjectName • ${controller.chapterProgressLabel(chapter)}${(chapter.description ?? '').isNotEmpty ? ' • ${chapter.description}' : ''}',
           icon: Icons.article_outlined,
           onTap: () => controller.openChapterSearchResult(chapter),
         );

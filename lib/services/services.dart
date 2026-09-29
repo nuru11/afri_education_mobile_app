@@ -25,3 +25,4 @@ export 'premium_service.dart';
 export 'pomodoro_service.dart';
 export 'api/reading_plan.dart';
 export 'api/reading_challenge.dart';
+export 'api/parent_mode.dart';

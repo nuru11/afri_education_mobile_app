@@ -27,3 +27,4 @@ export 'study_hub/study_hub_controller.dart';
 export 'study_hub/pomodoro_controller.dart';
 export 'study_hub/reading_plan_controller.dart';
 export 'study_hub/challenge_controller.dart';
+export 'parent/parent_mode_controller.dart';

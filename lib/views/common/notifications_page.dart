@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart' hide Notification;
 import 'package:get/get.dart';
 import 'package:vector_academy/controllers/controllers.dart';
-
+import 'package:vector_academy/flavors/flavor_config.dart';
 import 'package:vector_academy/models/models.dart';
 import 'package:vector_academy/utils/navigation_utils.dart';
+import 'package:vector_academy/views/parent/parent_request_sheet.dart';
 
 class NotificationsPage extends StatelessWidget {
   const NotificationsPage({super.key});
@@ -171,87 +172,104 @@ class NotificationsPage extends StatelessWidget {
                     ),
                   ],
           ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Notification Icon
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: _getNotificationColor(type).withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(20),
+          child: InkWell(
+            onTap:
+                notification.type == 'parent_link' &&
+                    FlavorConfig.supportsParentMode
+                ? () {
+                    if (!notification.isRead) {
+                      controller.markAsRead(notification.id);
+                    }
+                    openParentLinkRequests(context);
+                  }
+                : null,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Notification Icon
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: _getNotificationColor(type).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Icon(
+                    _getNotificationIcon(type),
+                    color: _getNotificationColor(type),
+                    size: 20,
+                  ),
                 ),
-                child: Icon(
-                  _getNotificationIcon(type),
-                  color: _getNotificationColor(type),
-                  size: 20,
-                ),
-              ),
 
-              SizedBox(width: 12),
+                SizedBox(width: 12),
 
-              // Notification Content
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            notification.title,
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: isRead
-                                  ? FontWeight.w500
-                                  : FontWeight.bold,
-                              color: isRead ? Colors.grey[700] : Colors.black87,
+                // Notification Content
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              notification.title,
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: isRead
+                                    ? FontWeight.w500
+                                    : FontWeight.bold,
+                                color: isRead
+                                    ? Colors.grey[700]
+                                    : Colors.black87,
+                              ),
                             ),
                           ),
-                        ),
-                        if (!isRead)
-                          Container(
-                            width: 8,
-                            height: 8,
-                            decoration: BoxDecoration(
-                              color: Colors.blue[600],
-                              shape: BoxShape.circle,
+                          if (!isRead)
+                            Container(
+                              width: 8,
+                              height: 8,
+                              decoration: BoxDecoration(
+                                color: Colors.blue[600],
+                                shape: BoxShape.circle,
+                              ),
                             ),
-                          ),
-                      ],
-                    ),
-
-                    SizedBox(height: 4),
-
-                    Text(
-                      notification.message,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[600],
-                        height: 1.3,
+                        ],
                       ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
 
-                    SizedBox(height: 8),
+                      SizedBox(height: 4),
 
-                    Text(
-                      notification.createdAt.toString(),
-                      style: TextStyle(fontSize: 12, color: Colors.grey[500]),
-                    ),
-                  ],
+                      Text(
+                        notification.message,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey[600],
+                          height: 1.3,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+
+                      SizedBox(height: 8),
+
+                      Text(
+                        notification.createdAt.toString(),
+                        style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
 
-              // Action Button
-              IconButton(
-                icon: Icon(Icons.more_vert, color: Colors.grey[500]),
-                onPressed: () =>
-                    _showNotificationActions(context, notification, controller),
-              ),
-            ],
+                // Action Button
+                IconButton(
+                  icon: Icon(Icons.more_vert, color: Colors.grey[500]),
+                  onPressed: () => _showNotificationActions(
+                    context,
+                    notification,
+                    controller,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -268,6 +286,8 @@ class NotificationsPage extends StatelessWidget {
         return Colors.orange[600]!;
       case 'system':
         return Colors.purple[600]!;
+      case 'parent_link':
+        return const Color(0xFF6366F1);
       default:
         return Colors.grey[600]!;
     }
@@ -283,6 +303,8 @@ class NotificationsPage extends StatelessWidget {
         return Icons.emoji_events;
       case 'system':
         return Icons.system_update;
+      case 'parent_link':
+        return Icons.family_restroom;
       default:
         return Icons.notifications;
     }

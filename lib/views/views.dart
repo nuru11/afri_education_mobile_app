@@ -34,6 +34,9 @@ export 'success_stories/success_story_detail_page.dart';
 export 'common/user_score_page.dart';
 export 'agent/agent_apply_page.dart';
 export 'agent/agent_status_page.dart';
+export 'parent/parent_link_page.dart';
+export 'parent/parent_dashboard.dart';
+export 'parent/parent_request_sheet.dart';
 
 enum VIEWS {
   home('/home'),

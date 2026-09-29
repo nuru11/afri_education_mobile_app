@@ -15,6 +15,7 @@ class ConfigPreference {
   static const String _askedStudyPlanExactAlarmKey =
       'asked_study_plan_exact_alarm_permission';
   static const String _pomodoroStateKey = 'pomodoro_state';
+  static const String _parentModeKeyPrefix = 'parent_mode_enabled_';
 
   // Initialize Hive
   static Future<void> init() async {
@@ -80,7 +81,9 @@ class ConfigPreference {
         as bool;
   }
 
-  static Future<void> setAskedStudyPlanNotificationPermission(bool value) async {
+  static Future<void> setAskedStudyPlanNotificationPermission(
+    bool value,
+  ) async {
     await _getBox().put(_askedStudyPlanNotificationKey, value);
   }
 
@@ -100,5 +103,14 @@ class ConfigPreference {
 
   static Future<void> setPomodoroState(String value) async {
     await _getBox().put(_pomodoroStateKey, value);
+  }
+
+  static bool isParentModeEnabled(int userId) {
+    return _getBox().get('$_parentModeKeyPrefix$userId', defaultValue: false)
+        as bool;
+  }
+
+  static Future<void> setParentModeEnabled(int userId, bool value) async {
+    await _getBox().put('$_parentModeKeyPrefix$userId', value);
   }
 }

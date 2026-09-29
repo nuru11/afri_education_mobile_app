@@ -14,6 +14,8 @@ class ExamController extends GetxController {
   final InternetConnection _internetConnection = InternetConnection();
   bool _isLoading = true;
   bool get isLoading => _isLoading;
+  bool _isOffline = false;
+  bool get isOffline => _isOffline;
   User? _user;
   bool get hasFullAccessOverride =>
       hasFullAccessOverrideForPhone(_user?.phoneNumber);
@@ -54,13 +56,13 @@ class ExamController extends GetxController {
     _internetConnection.onStatusChange.listen((event) {
       if (event == InternetStatus.connected) {
         loadExams();
+      } else {
+        _applyOfflineFilter();
       }
     });
 
-    _hiveExamStorage.listen((event) {
-      _exams = event.where((e) => e.examType != 'quiz').toList();
-      _refreshCompletionBadges();
-      update();
+    _hiveExamStorage.listen((_) {
+      _syncVisibleExams();
     }, 'exams');
 
     HiveSubjectsStorage().listen((event) {
@@ -75,38 +77,63 @@ class ExamController extends GetxController {
     update();
   }
 
+  Future<void> _applyOfflineFilter() async {
+    _isOffline = true;
+    _exams = await _visibleExams();
+    update();
+  }
+
+  Future<void> _syncVisibleExams() async {
+    _exams = await _visibleExams();
+    await _refreshCompletionBadges();
+  }
+
+  Future<List<Exam>> _visibleExams() async {
+    final exams = await _hiveExamStorage.getExams();
+    for (final exam in exams) {
+      exam.isDownloaded = exam.questions.isNotEmpty;
+    }
+
+    final subjectId =
+        _subjects.isEmpty ||
+            _selectedSubjectIndex < 0 ||
+            _selectedSubjectIndex >= _subjects.length
+        ? 0
+        : _subjects[_selectedSubjectIndex].id;
+
+    return exams.where((exam) {
+      if (exam.examType == 'quiz') return false;
+      if (subjectId != 0 && exam.subject?.id != subjectId) return false;
+      if (_isOffline && !hasDownloadedExamContent(exam)) return false;
+      return true;
+    }).toList();
+  }
+
   Future<void> loadExams() async {
     _isLoading = true;
     _error = null;
     update();
 
-    final device = await UserDevice.getDeviceInfo(_user?.phoneNumber ?? '');
+    _isOffline = !await _internetConnection.hasInternetAccess;
 
     try {
-      final grade = _user?.grade;
-      final exams_ = await _examService.getAvailableExams(
-        device.id,
-        gradeId: grade?.id,
-      );
-      await _hiveExamStorage.setExams(exams_);
-      _exams = (await _hiveExamStorage.getExams())
-          .where((e) => e.examType != 'quiz')
-          .toList();
+      if (!_isOffline) {
+        final device = await UserDevice.getDeviceInfo(_user?.phoneNumber ?? '');
+        final grade = _user?.grade;
+        final exams_ = await _examService.getAvailableExams(
+          device.id,
+          gradeId: grade?.id,
+        );
+        await _hiveExamStorage.setExams(exams_);
+      }
+      _exams = await _visibleExams();
     } catch (e) {
-      _exams = await _hiveExamStorage.getExams();
+      _exams = await _visibleExams();
     } finally {
       _isLoading = false;
       await _refreshCompletionBadges();
       update();
     }
-  }
-
-  Future<void> _updateExamDownloadStatus() async {
-    for (var exam in _exams) {
-      final questions = await _hiveExamStorage.getQuestions(exam.id);
-      exam.isDownloaded = questions.isNotEmpty;
-    }
-    update();
   }
 
   Future<void> _refreshCompletionBadges() async {
@@ -119,18 +146,9 @@ class ExamController extends GetxController {
   }
 
   Future<void> selectSubject(int index) async {
-    final subject = _subjects[index];
     _selectedSubjectIndex = index;
-    final exams = await _hiveExamStorage.getExams();
-    if (subject.id == 0) {
-      _exams = exams.where((e) => e.examType != 'quiz').toList();
-    } else {
-      _exams = exams
-          .where((e) => e.subject?.id == subject.id && e.examType != 'quiz')
-          .toList();
-    }
-    // Update download status for filtered exams
-    await _updateExamDownloadStatus();
+    _exams = await _visibleExams();
+    update();
   }
 
   void startExam(int examId) {
@@ -152,7 +170,8 @@ class ExamController extends GetxController {
   }
 
   Future<void> refreshExamDownloadStatus() async {
-    await _updateExamDownloadStatus();
+    _exams = await _visibleExams();
+    update();
   }
 
   Future<List<Exam>> searchExams(String query) async {

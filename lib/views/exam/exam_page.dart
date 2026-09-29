@@ -277,13 +277,18 @@ Widget _buildExamList(BuildContext context, ExamController controller) {
                 Icon(Icons.quiz, size: 48, color: Colors.grey),
                 SizedBox(height: 16),
                 Text(
-                  'No exams available',
+                  controller.isOffline
+                      ? 'No downloaded exams'
+                      : 'No exams available',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 SizedBox(height: 8),
                 Text(
-                  'Check back later for new exams',
+                  controller.isOffline
+                      ? 'No downloaded exams are available offline'
+                      : 'Check back later for new exams',
                   style: TextStyle(color: Colors.grey[600]),
+                  textAlign: TextAlign.center,
                 ),
               ],
             ),
