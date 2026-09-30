@@ -41,11 +41,21 @@ class ExamPage extends StatelessWidget {
             children: [
               // Promotional Banner - Made more compact
               _buildPromotionalBanner(context),
-              // Subject Categories
-              _buildSubjectCategories(context, controller),
-
-              // Exam List - This will now take up most of the available space
-              Expanded(child: _buildExamList(context, controller)),
+              Expanded(
+                child: buildExamBrowseGrid(
+                  context: context,
+                  controller: controller,
+                  groups: controller.categoryGroups,
+                  onTap: (group) {
+                    Get.to(
+                      () => ExamSectionsPage(
+                        categoryId: group.id,
+                        categoryName: group.name,
+                      ),
+                    );
+                  },
+                ),
+              ),
             ],
           ),
         ),
@@ -138,11 +148,12 @@ class ExamPage extends StatelessWidget {
       ),
     );
   }
+}
 
-  Widget _buildSubjectCategories(
-    BuildContext context,
-    ExamController controller,
-  ) {
+Widget buildExamSubjectCategories(
+  BuildContext context,
+  ExamController controller,
+) {
     return Container(
       height: 50,
       margin: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -228,10 +239,15 @@ class ExamPage extends StatelessWidget {
         },
       ),
     );
-  }
 }
 
-Widget _buildExamList(BuildContext context, ExamController controller) {
+Widget _buildExamList(
+  BuildContext context,
+  ExamController controller, {
+  List<Exam>? exams,
+  String title = 'Available Exams',
+}) {
+  final items = exams ?? controller.exams;
   if (controller.isLoading) {
     return Center(child: CircularProgressIndicator());
   }
@@ -263,7 +279,7 @@ Widget _buildExamList(BuildContext context, ExamController controller) {
     );
   }
 
-  if (controller.exams.isEmpty) {
+  if (items.isEmpty) {
     return RefreshIndicator(
       onRefresh: controller.refreshExams,
       child: SingleChildScrollView(
@@ -309,7 +325,7 @@ Widget _buildExamList(BuildContext context, ExamController controller) {
               child: Padding(
                 padding: EdgeInsets.only(bottom: 12),
                 child: Text(
-                  'Available Exams',
+                  title,
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -330,9 +346,9 @@ Widget _buildExamList(BuildContext context, ExamController controller) {
             onRefresh: controller.refreshExams,
             child: ListView.builder(
               physics: AlwaysScrollableScrollPhysics(),
-              itemCount: controller.exams.length,
+              itemCount: items.length,
               itemBuilder: (context, index) {
-                final exam = controller.exams[index];
+                final exam = items[index];
                 return GetBuilder<DownloadsController>(
                   builder: (_) => _buildExamCard(context, exam, controller),
                 );
@@ -672,6 +688,228 @@ class ExamSearchDelegate extends SearchDelegate<Exam?> {
       itemCount: exams.length,
       itemBuilder: (context, index) =>
           _buildExamCard(context, exams[index], controller),
+    );
+  }
+}
+
+Widget buildExamBrowseGrid({
+  required BuildContext context,
+  required ExamController controller,
+  required List<ExamBrowseGroup> groups,
+  required void Function(ExamBrowseGroup group) onTap,
+}) {
+  if (controller.isLoading) {
+    return const Center(child: CircularProgressIndicator());
+  }
+
+  if (controller.error != null) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.error, size: 48, color: Colors.red),
+          const SizedBox(height: 16),
+          Text(controller.error!),
+          const SizedBox(height: 16),
+          ElevatedButton(
+            onPressed: controller.refreshExams,
+            child: const Text('Retry'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  if (groups.isEmpty) {
+    return RefreshIndicator(
+      onRefresh: controller.refreshExams,
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: [
+          SizedBox(
+            height: MediaQuery.of(context).size.height * 0.45,
+            child: Center(
+              child: Text(
+                controller.isOffline
+                    ? 'No downloaded exams'
+                    : 'No exams available',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  return RefreshIndicator(
+    onRefresh: controller.refreshExams,
+    child: GridView.builder(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        crossAxisSpacing: 10,
+        mainAxisSpacing: 10,
+        childAspectRatio: 1,
+      ),
+      itemCount: groups.length,
+      itemBuilder: (context, index) {
+        final group = groups[index];
+        return Material(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: () => onTap(group),
+            child: Ink(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFF3B82F6), width: 1.2),
+                gradient: const LinearGradient(
+                  colors: [Color(0xFFEFF6FF), Color(0xFFDBEAFE)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(8),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      group.name,
+                      textAlign: TextAlign.center,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF1E3A8A),
+                        height: 1.2,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      '${group.count}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.blue[700],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    ),
+  );
+}
+
+class ExamSectionsPage extends StatelessWidget {
+  const ExamSectionsPage({
+    super.key,
+    required this.categoryId,
+    required this.categoryName,
+  });
+
+  final int? categoryId;
+  final String categoryName;
+
+  @override
+  Widget build(BuildContext context) {
+    return GetBuilder<ExamController>(
+      builder: (controller) => Scaffold(
+        backgroundColor: Colors.white,
+        appBar: AppBar(
+          title: Text(
+            categoryName,
+            style: const TextStyle(
+              color: Colors.black87,
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+            ),
+          ),
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          iconTheme: const IconThemeData(color: Colors.black87),
+        ),
+        body: SafeArea(
+          child: buildExamBrowseGrid(
+            context: context,
+            controller: controller,
+            groups: controller.sectionsForCategory(categoryId: categoryId),
+            onTap: (group) {
+              Get.to(
+                () => ExamSectionExamsPage(
+                  categoryId: categoryId,
+                  sectionId: group.id,
+                  sectionName: group.name,
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class ExamSectionExamsPage extends StatelessWidget {
+  const ExamSectionExamsPage({
+    super.key,
+    required this.categoryId,
+    required this.sectionId,
+    required this.sectionName,
+  });
+
+  final int? categoryId;
+  final int? sectionId;
+  final String sectionName;
+
+  @override
+  Widget build(BuildContext context) {
+    return GetBuilder<ExamController>(
+      builder: (controller) => Scaffold(
+        backgroundColor: Colors.white,
+        appBar: AppBar(
+          title: Text(
+            sectionName,
+            style: const TextStyle(
+              color: Colors.black87,
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+            ),
+          ),
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          iconTheme: const IconThemeData(color: Colors.black87),
+        ),
+        body: SafeArea(
+          child: Column(
+            children: [
+              buildExamSubjectCategories(context, controller),
+              Expanded(
+                child: _buildExamList(
+                  context,
+                  controller,
+                  exams: controller.examsInSection(
+                    categoryId: categoryId,
+                    sectionId: sectionId,
+                  ),
+                  title: sectionName,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

@@ -1378,6 +1378,8 @@ import 'package:vector_academy/views/views.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:vector_academy/flavors/flavor_config.dart';
+import 'package:vector_academy/views/home/home_exam_score_carousel.dart';
+import 'package:vector_academy/views/home/optimal_computer_products_bar.dart';
 
 class HomeDashboard extends StatelessWidget {
   HomeDashboard({super.key});
@@ -1389,6 +1391,8 @@ class HomeDashboard extends StatelessWidget {
     Get.put(HomeDashboardController());
     Get.put(NavigationDrawerController());
     Get.put(NotificationsController());
+    Get.put(UserScoreController());
+    Get.put(OptimalComputerProductsController());
     if (FlavorConfig.supportsParentMode) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         maybePromptParentRequests();
@@ -1617,247 +1621,6 @@ class HomeDashboard extends StatelessWidget {
     );
   }
 
-  ({double width, double height}) _featuredUpdateCardSize(BuildContext context) {
-    final screenWidth = MediaQuery.sizeOf(context).width;
-    final isCompact = screenWidth < 360;
-    final isTablet = screenWidth >= 768;
-    final width = (screenWidth * (isCompact ? 0.34 : 0.30))
-        .clamp(128.0, isTablet ? 168.0 : 152.0)
-        .toDouble();
-    return (width: width, height: width / 0.92);
-  }
-
-  Widget _buildFeaturedUpdatesBar(
-    BuildContext context,
-    HomeDashboardController controller,
-  ) {
-    final featuredUpdates = controller.featuredUpdates;
-    final isLoading =
-        controller.isFeaturedUpdatesLoading && featuredUpdates.isEmpty;
-    final cardSize = _featuredUpdateCardSize(context);
-
-    return Container(
-      margin: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [const Color(0xFFF8FAFC), const Color(0xFFF1F5F9)],
-        ),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: const Color(0xFFCBD5E1).withValues(alpha: 0.9),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 28,
-                height: 28,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE2E8F0),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(
-                  Icons.campaign_rounded,
-                  size: 16,
-                  color: Color(0xFF334155),
-                ),
-              ),
-              const SizedBox(width: 8),
-              const Expanded(
-                child: Text(
-                  'Latest News',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.black87,
-                  ),
-                ),
-              ),
-              IconButton(
-                tooltip: 'Refresh updates',
-                onPressed: () => controller.loadFeaturedUpdates(showLoader: false),
-                visualDensity: VisualDensity.compact,
-                style: IconButton.styleFrom(
-                  backgroundColor: const Color(0xFFE2E8F0),
-                  minimumSize: const Size(32, 32),
-                  padding: const EdgeInsets.all(6),
-                ),
-                icon: const Icon(
-                  Icons.refresh_rounded,
-                  size: 18,
-                  color: Color(0xFF334155),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          if (isLoading)
-            SizedBox(
-              height: cardSize.height,
-              child: const Center(child: CircularProgressIndicator(strokeWidth: 2.5)),
-            )
-          else if (featuredUpdates.isEmpty)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
-              ),
-              child: Text(
-                'No recent updates yet.',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey[600],
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-          if (!isLoading && featuredUpdates.isNotEmpty)
-            SizedBox(
-              height: cardSize.height,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                itemCount: featuredUpdates.length,
-                separatorBuilder: (_, index) => const SizedBox(width: 10),
-                itemBuilder: (context, index) => SizedBox(
-                  width: cardSize.width,
-                  height: cardSize.height,
-                  child: _buildFeaturedUpdateCard(
-                    context,
-                    featuredUpdates[index],
-                    controller,
-                  ),
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFeaturedUpdateCard(
-    BuildContext context,
-    FeaturedUpdateItem item,
-    HomeDashboardController controller,
-  ) {
-    final theme = Theme.of(context);
-    final isNews = item.type == FeaturedUpdateType.news;
-    final label = isNews ? 'News' : 'Exam';
-    final chipColor = isNews ? const Color(0xFF1D4ED8) : const Color(0xFF0F766E);
-    final accentColor = isNews ? const Color(0xFFDBEAFE) : const Color(0xFFCCFBF1);
-    final imageUrl = item.imageUrl?.trim();
-    final hasImage = imageUrl != null && imageUrl.isNotEmpty;
-
-    Widget thumbnailFallback() {
-      return Container(
-        color: chipColor.withValues(alpha: 0.1),
-        child: Center(
-          child: Icon(
-            isNews ? Icons.article_outlined : Icons.quiz_outlined,
-            color: chipColor,
-            size: 28,
-          ),
-        ),
-      );
-    }
-
-    final card = Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  hasImage
-                      ? CachedNetworkImage(
-                          imageUrl: imageUrl,
-                          fit: BoxFit.cover,
-                          width: double.infinity,
-                          height: double.infinity,
-                          placeholder: (context, url) => Container(
-                            color: chipColor.withValues(alpha: 0.08),
-                            child: const Center(
-                              child: SizedBox(
-                                width: 22,
-                                height: 22,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              ),
-                            ),
-                          ),
-                          errorWidget: (context, url, error) =>
-                              thumbnailFallback(),
-                        )
-                      : thumbnailFallback(),
-                  Positioned(
-                    top: 6,
-                    left: 6,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: accentColor.withValues(alpha: 0.95),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        label,
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                          color: chipColor.withValues(alpha: 0.95),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            item.title,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.titleSmall,
-          ),
-        ],
-      ),
-    );
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () => controller.openFeaturedUpdate(item),
-        borderRadius: BorderRadius.circular(10),
-        child: card,
-      ),
-    );
-  }
 
   Widget _buildGradeTabs(
     BuildContext context,
@@ -1963,6 +1726,12 @@ class HomeDashboard extends StatelessWidget {
         await controller.loadGrades();
         await controller.loadSubjects();
         await controller.loadFeaturedUpdates(showLoader: false);
+        if (Get.isRegistered<UserScoreController>()) {
+          await Get.find<UserScoreController>().refreshResults();
+        }
+        if (Get.isRegistered<OptimalComputerProductsController>()) {
+          await Get.find<OptimalComputerProductsController>().loadSlides();
+        }
       },
       color: Colors.blue,
       backgroundColor: Colors.white,
@@ -1972,9 +1741,8 @@ class HomeDashboard extends StatelessWidget {
           parent: BouncingScrollPhysics(),
         ),
         slivers: [
-          SliverToBoxAdapter(
-            child: _buildFeaturedUpdatesBar(context, controller),
-          ),
+          const SliverToBoxAdapter(child: HomeExamScoreCarousel()),
+          const SliverToBoxAdapter(child: OptimalComputerProductsBar()),
           if (controller.showGradeTabs)
             SliverToBoxAdapter(
               child: _buildGradeTabs(context, controller),

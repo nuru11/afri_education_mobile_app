@@ -7,7 +7,23 @@ import 'package:internet_connection_checker_plus/internet_connection_checker_plu
 import 'package:vector_academy/utils/device/device.dart';
 import 'package:vector_academy/utils/utils.dart';
 
+class ExamBrowseGroup {
+  final int? id;
+  final String name;
+  final int sortOrder;
+  final int count;
+
+  const ExamBrowseGroup({
+    required this.id,
+    required this.name,
+    required this.sortOrder,
+    required this.count,
+  });
+}
+
 class ExamController extends GetxController {
+  static const uncategorizedCategoryName = 'Uncategorized';
+  static const generalSectionName = 'General';
   final ExamService _examService = ExamService();
   final HiveExamStorage _hiveExamStorage = HiveExamStorage();
   // Completion now handled within HiveExamStorage
@@ -94,16 +110,8 @@ class ExamController extends GetxController {
       exam.isDownloaded = exam.questions.isNotEmpty;
     }
 
-    final subjectId =
-        _subjects.isEmpty ||
-            _selectedSubjectIndex < 0 ||
-            _selectedSubjectIndex >= _subjects.length
-        ? 0
-        : _subjects[_selectedSubjectIndex].id;
-
     return exams.where((exam) {
-      if (exam.examType == 'quiz') return false;
-      if (subjectId != 0 && exam.subject?.id != subjectId) return false;
+      if (!_isExamScreenExam(exam)) return false;
       if (_isOffline && !hasDownloadedExamContent(exam)) return false;
       return true;
     }).toList();
@@ -147,8 +155,78 @@ class ExamController extends GetxController {
 
   Future<void> selectSubject(int index) async {
     _selectedSubjectIndex = index;
-    _exams = await _visibleExams();
     update();
+  }
+
+  bool _isExamScreenExam(Exam exam) {
+    if (exam.examType == 'quiz') return false;
+    final mode = exam.modeType.toLowerCase();
+    return mode == 'practice' || mode == 'exam_mode' || mode == 'both';
+  }
+
+  int get _selectedSubjectId {
+    if (_subjects.isEmpty ||
+        _selectedSubjectIndex < 0 ||
+        _selectedSubjectIndex >= _subjects.length) {
+      return 0;
+    }
+    return _subjects[_selectedSubjectIndex].id;
+  }
+
+  List<ExamBrowseGroup> get categoryGroups => _groupsFor(null);
+
+  List<ExamBrowseGroup> sectionsForCategory({int? categoryId}) {
+    return _groupsFor(categoryId, sections: true);
+  }
+
+  List<ExamBrowseGroup> _groupsFor(int? categoryId, {bool sections = false}) {
+    final groups = <String, ExamBrowseGroup>{};
+    final counts = <String, int>{};
+    for (final exam in _exams) {
+      if (sections) {
+        final matchesCategory = categoryId == null
+            ? exam.examCategory == null
+            : exam.examCategory?.id == categoryId;
+        if (!matchesCategory) continue;
+      }
+      final grouping = sections ? exam.section : exam.examCategory;
+      final fallbackName = sections
+          ? generalSectionName
+          : uncategorizedCategoryName;
+      final key = grouping == null
+          ? fallbackName
+          : '${sections ? 's' : 'c'}-${grouping.id}';
+      counts[key] = (counts[key] ?? 0) + 1;
+      groups[key] = ExamBrowseGroup(
+        id: grouping?.id,
+        name: grouping?.name ?? fallbackName,
+        sortOrder: grouping?.sortOrder ?? 1 << 20,
+        count: counts[key]!,
+      );
+    }
+    final list = groups.values.toList()
+      ..sort((a, b) {
+        final order = a.sortOrder.compareTo(b.sortOrder);
+        if (order != 0) return order;
+        return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+      });
+    return list;
+  }
+
+  List<Exam> examsInSection({int? categoryId, int? sectionId}) {
+    final subjectId = _selectedSubjectId;
+    return _exams.where((exam) {
+      final matchesCategory = categoryId == null
+          ? exam.examCategory == null
+          : exam.examCategory?.id == categoryId;
+      if (!matchesCategory) return false;
+      final matchesSection = sectionId == null
+          ? exam.section == null
+          : exam.section?.id == sectionId;
+      if (!matchesSection) return false;
+      if (subjectId != 0 && exam.subject?.id != subjectId) return false;
+      return true;
+    }).toList();
   }
 
   void startExam(int examId) {
