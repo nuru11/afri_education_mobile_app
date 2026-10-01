@@ -5,6 +5,7 @@ import 'package:vector_academy/controllers/misc/downloads_controller.dart';
 import 'package:vector_academy/models/exam.dart';
 import 'package:vector_academy/models/models.dart';
 import 'package:vector_academy/utils/utils.dart';
+import 'package:vector_academy/views/exam/exam_detail_page.dart';
 
 class ExamPage extends StatelessWidget {
   const ExamPage({super.key});
@@ -537,12 +538,11 @@ Widget _buildExamCard(
 
 Widget buildExamActionButton(Exam exam, ExamController controller) {
   if (exam.isLocked) {
-    // Locked exam
     return ElevatedButton(
-      onPressed: null,
+      onPressed: () => openExamPurchase(exam),
       style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.grey[200],
-        foregroundColor: Colors.grey[500],
+        backgroundColor: Colors.orange[700],
+        foregroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
         padding: EdgeInsets.symmetric(horizontal: 6, vertical: 6),
         minimumSize: Size(0, 0),
@@ -551,11 +551,11 @@ Widget buildExamActionButton(Exam exam, ExamController controller) {
         mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.lock, size: 10, color: Colors.grey[500]),
+          Icon(Icons.lock_open, size: 10, color: Colors.white),
           SizedBox(width: 3),
           Flexible(
             child: Text(
-              "Locked",
+              "Unlock",
               style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600),
               overflow: TextOverflow.ellipsis,
             ),

@@ -270,6 +270,13 @@ class PaymentPage extends StatelessWidget {
     final String? targetSubjectName = args is Map
         ? args['subjectName'] as String?
         : null;
+    final dynamic rawExamId = args is Map ? args['examId'] : null;
+    final int? targetExamId = rawExamId is int
+        ? rawExamId
+        : int.tryParse(rawExamId?.toString() ?? '');
+    final String? targetExamName = args is Map
+        ? args['examName'] as String?
+        : null;
     final bool prioritizePlanner =
         args is Map && args['prioritizePlanner'] == true;
 
@@ -291,6 +298,7 @@ class PaymentPage extends StatelessWidget {
                 _buildModernTopBar(
                   context,
                   targetSubjectName,
+                  targetExamName: targetExamName,
                   prioritizePlanner: prioritizePlanner,
                 ),
                 Expanded(
@@ -299,6 +307,8 @@ class PaymentPage extends StatelessWidget {
                     controller,
                     targetSubjectId: targetSubjectId,
                     targetSubjectName: targetSubjectName,
+                    targetExamId: targetExamId,
+                    targetExamName: targetExamName,
                     prioritizePlanner: prioritizePlanner,
                   ),
                 ),
@@ -313,18 +323,24 @@ class PaymentPage extends StatelessWidget {
   Widget _buildModernTopBar(
     BuildContext context,
     String? targetSubjectName, {
+    String? targetExamName,
     bool prioritizePlanner = false,
   }) {
+    final hasExam = targetExamName != null && targetExamName.isNotEmpty;
     final title = prioritizePlanner
         ? 'Unlock Planner'
-        : targetSubjectName == null || targetSubjectName.isEmpty
-            ? 'Choose Package'
-            : 'Unlock $targetSubjectName';
+        : hasExam
+            ? 'Unlock $targetExamName'
+            : targetSubjectName == null || targetSubjectName.isEmpty
+                ? 'Choose Package'
+                : 'Unlock $targetSubjectName';
     final subtitle = prioritizePlanner
         ? 'Select a planner package to continue'
-        : targetSubjectName == null || targetSubjectName.isEmpty
-            ? 'Select and pay for your subscription'
-            : 'Pay once to unlock all Sections';
+        : hasExam
+            ? 'Pay once to unlock this exam'
+            : targetSubjectName == null || targetSubjectName.isEmpty
+                ? 'Select and pay for your subscription'
+                : 'Pay once to unlock all Sections';
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
@@ -408,21 +424,30 @@ class PaymentPage extends StatelessWidget {
 
   Widget _buildPackageSelection(
     BuildContext context,
-    PaymentController controller,
-    {int? targetSubjectId, String? targetSubjectName, bool prioritizePlanner = false}
-  ) {
+    PaymentController controller, {
+    int? targetSubjectId,
+    String? targetSubjectName,
+    int? targetExamId,
+    String? targetExamName,
+    bool prioritizePlanner = false,
+  }) {
     if (controller.isLoading) {
       return _buildLoadingState();
     }
 
+    final hasExam = targetExamId != null;
     List<Package> packagesToShow = controller.packages;
-    if (targetSubjectId != null) {
+    if (hasExam) {
+      packagesToShow = packagesToShow
+          .where((package) => package.exams.contains(targetExamId))
+          .toList();
+    } else if (targetSubjectId != null) {
       packagesToShow = _prioritizeTargetSubjectPackages(
         packagesToShow,
         targetSubjectId,
       );
     }
-    if (prioritizePlanner) {
+    if (prioritizePlanner && !hasExam) {
       packagesToShow = _plannerPackagesForUpgrade(packagesToShow);
     }
 
@@ -433,16 +458,18 @@ class PaymentPage extends StatelessWidget {
         children: [
           // Available Packages
           Text(
-            targetSubjectName == null || targetSubjectName.isEmpty
-                ? 'Available Packages'
-                : 'Recommended for $targetSubjectName',
+            hasExam
+                ? 'Packages for ${targetExamName ?? 'this exam'}'
+                : targetSubjectName == null || targetSubjectName.isEmpty
+                    ? 'Available Packages'
+                    : 'Recommended for $targetSubjectName',
             style: const TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.w700,
               color: Colors.white,
             ),
           ),
-          if (targetSubjectId != null)
+          if (targetSubjectId != null && !hasExam)
             Padding(
               padding: const EdgeInsets.only(top: 4),
               child: Text(
@@ -497,8 +524,10 @@ class PaymentPage extends StatelessWidget {
           const SizedBox(height: 16),
 
           Expanded(
-            child: packagesToShow.isEmpty && prioritizePlanner
-                ? _buildPlannerPackagesEmptyState()
+            child: packagesToShow.isEmpty && (prioritizePlanner || hasExam)
+                ? hasExam
+                    ? _buildExamPackagesEmptyState()
+                    : _buildPlannerPackagesEmptyState()
                 : ListView.builder(
                     physics: const BouncingScrollPhysics(),
                     itemCount: packagesToShow.length,
@@ -542,6 +571,23 @@ class PaymentPage extends StatelessWidget {
       return aPlannerOnly ? -1 : 1;
     });
     return plannerPackages;
+  }
+
+  Widget _buildExamPackagesEmptyState() {
+    return const Center(
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 12),
+        child: Text(
+          'This exam is not for sale yet.',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _buildPlannerPackagesEmptyState() {
