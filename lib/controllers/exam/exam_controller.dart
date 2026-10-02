@@ -12,12 +12,14 @@ class ExamBrowseGroup {
   final String name;
   final int sortOrder;
   final int count;
+  final String? thumbnail;
 
   const ExamBrowseGroup({
     required this.id,
     required this.name,
     required this.sortOrder,
     required this.count,
+    this.thumbnail,
   });
 }
 
@@ -183,6 +185,7 @@ class ExamController extends GetxController {
     final groups = <String, ExamBrowseGroup>{};
     final counts = <String, int>{};
     for (final exam in _exams) {
+      if (exam.examCategory == null) continue;
       if (sections) {
         final matchesCategory = categoryId == null
             ? exam.examCategory == null
@@ -202,6 +205,7 @@ class ExamController extends GetxController {
         name: grouping?.name ?? fallbackName,
         sortOrder: grouping?.sortOrder ?? 1 << 20,
         count: counts[key]!,
+        thumbnail: sections ? null : grouping?.thumbnail,
       );
     }
     final list = groups.values.toList()
@@ -216,6 +220,7 @@ class ExamController extends GetxController {
   List<Exam> examsInSection({int? categoryId, int? sectionId}) {
     final subjectId = _selectedSubjectId;
     return _exams.where((exam) {
+      if (exam.examCategory == null) return false;
       final matchesCategory = categoryId == null
           ? exam.examCategory == null
           : exam.examCategory?.id == categoryId;
@@ -254,7 +259,11 @@ class ExamController extends GetxController {
 
   Future<List<Exam>> searchExams(String query) async {
     return _exams
-        .where((e) => e.name.toLowerCase().contains(query.toLowerCase()))
+        .where(
+          (e) =>
+              e.examCategory != null &&
+              e.name.toLowerCase().contains(query.toLowerCase()),
+        )
         .toList();
   }
 

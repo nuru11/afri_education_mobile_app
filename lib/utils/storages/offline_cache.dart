@@ -91,6 +91,96 @@ class HiveLeaderboardCacheStorage {
         .map((item) => LeaderboardEntry.fromJson(Map<String, dynamic>.from(item)))
         .toList();
   }
+
+  String _userHomeScoresKey(int userId) => 'user_home_scores_$userId';
+
+  Future<void> setUserHomeScores({
+    required int userId,
+    UserLeaderboardResult? result,
+    required List<CompetetionExam> fallback,
+  }) async {
+    await _box.put(_userHomeScoresKey(userId), <String, dynamic>{
+      'result': result == null ? null : _leaderboardResultToJson(result),
+      'fallback': fallback.map((exam) => exam.toJson()).toList(),
+    });
+  }
+
+  Future<void> clearUserHomeScores(int userId) async {
+    await _box.delete(_userHomeScoresKey(userId));
+  }
+
+  Future<CachedUserHomeScores?> getUserHomeScores(int userId) async {
+    final value = _box.get(_userHomeScoresKey(userId));
+    if (value is! Map) {
+      return null;
+    }
+
+    final payload = Map<String, dynamic>.from(value);
+    UserLeaderboardResult? result;
+    final rawResult = payload['result'];
+    if (rawResult is Map) {
+      try {
+        result = UserLeaderboardResult.fromJson(
+          _normalizeLeaderboardResultJson(rawResult),
+        );
+      } catch (_) {
+        result = null;
+      }
+    }
+
+    return CachedUserHomeScores(
+      result: result,
+      fallback: _readCompetitionExams(payload['fallback']),
+    );
+  }
+
+  Map<String, dynamic> _leaderboardResultToJson(UserLeaderboardResult result) {
+    final json = Map<String, dynamic>.from(result.toJson());
+    json['exams'] = result.exams.map((exam) => exam.toJson()).toList();
+    return json;
+  }
+
+  Map<String, dynamic> _normalizeLeaderboardResultJson(Map raw) {
+    final json = Map<String, dynamic>.from(raw);
+    final averageScore = json['average_score'];
+    if (averageScore is num) {
+      json['average_score'] = averageScore.toDouble();
+    }
+    final totalQuestions = json['total_questions'];
+    if (totalQuestions is num) {
+      json['total_questions'] = totalQuestions.toInt();
+    }
+    json['exams'] = _readCompetitionExams(json['exams'])
+        .map((exam) => exam.toJson())
+        .toList();
+    return json;
+  }
+
+  List<CompetetionExam> _readCompetitionExams(dynamic raw) {
+    if (raw is! List) {
+      return [];
+    }
+
+    final exams = <CompetetionExam>[];
+    for (final item in raw) {
+      if (item is! Map) {
+        continue;
+      }
+      try {
+        exams.add(CompetetionExam.fromJson(Map<String, dynamic>.from(item)));
+      } catch (_) {
+        continue;
+      }
+    }
+    return exams;
+  }
+}
+
+class CachedUserHomeScores {
+  const CachedUserHomeScores({required this.result, required this.fallback});
+
+  final UserLeaderboardResult? result;
+  final List<CompetetionExam> fallback;
 }
 
 class HiveReadingPlanStorage {

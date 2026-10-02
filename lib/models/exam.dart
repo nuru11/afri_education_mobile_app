@@ -8,21 +8,25 @@ class ExamGrouping {
   final int id;
   final String name;
   final int sortOrder;
+  final String? thumbnail;
 
   const ExamGrouping({
     required this.id,
     required this.name,
     this.sortOrder = 0,
+    this.thumbnail,
   });
 
   factory ExamGrouping.fromJson(Map<String, dynamic> json) {
     final id = json['id'];
+    final thumbnail = json['thumbnail']?.toString().trim();
     return ExamGrouping(
       id: id is int ? id : int.parse(id.toString()),
       name: json['name']?.toString() ?? '',
       sortOrder: json['sort_order'] is int
           ? json['sort_order'] as int
           : int.tryParse('${json['sort_order']}') ?? 0,
+      thumbnail: thumbnail == null || thumbnail.isEmpty ? null : thumbnail,
     );
   }
 
@@ -30,6 +34,7 @@ class ExamGrouping {
     'id': id,
     'name': name,
     'sort_order': sortOrder,
+    'thumbnail': thumbnail,
   };
 }
 

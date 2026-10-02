@@ -11,6 +11,7 @@ class UserScoreController extends GetxController {
   final UserResultsService _userResultsService = UserResultsService();
   final LeaderboardService _leaderboardService = LeaderboardService();
   final ExamService _examService = ExamService();
+  final HiveLeaderboardCacheStorage _scoreCache = HiveLeaderboardCacheStorage();
 
   bool _isLoading = false;
   bool get isLoading => _isLoading;
@@ -49,11 +50,12 @@ class UserScoreController extends GetxController {
 
     try {
       _user = await HiveUserStorage().getUser();
+      await _restoreCachedScores();
       // Load competitions without blocking - don't auto-load user results
       await loadCompetitions();
       HiveUserStorage().listen((event) {
         _user = event;
-        loadCompetitions();
+        _restoreCachedScores().then((_) => loadCompetitions());
       }, 'user');
     } catch (e) {
       logger.e('Failed to initialize UserScoreController: $e');
@@ -67,11 +69,7 @@ class UserScoreController extends GetxController {
     // Prevent multiple simultaneous loads
     _isLoadingCompetitions = true;
     _error = null;
-    _competitions = []; // Clear old competitions
-    _selectedCompetitionId = null; // Reset selection
-    _userResult = null; // Clear old results
-    _examFallbackScores = [];
-    update(); // Notify UI immediately
+    update(); // Keep the last scores on screen while refreshing
 
     try {
       final phoneNumber = _user?.phoneNumber;
@@ -105,8 +103,9 @@ class UserScoreController extends GetxController {
       }
     } catch (e) {
       logger.e('Failed to load competitions: $e');
-      _competitions = [];
-      _error = 'Failed to load competitions. Please try again.';
+      if (!_hasVisibleScores) {
+        _error = 'Failed to load competitions. Please try again.';
+      }
     } finally {
       _isLoadingCompetitions = false;
       update(); // Notify UI of completion
@@ -132,11 +131,9 @@ class UserScoreController extends GetxController {
 
     logger.i('selectCompetition: Selecting competition $competitionId');
     _selectedCompetitionId = competitionId;
-    _userResult = null; // Clear old results
-    _examFallbackScores = [];
     _error = null; // Clear old errors
     _isLoading = false; // Reset loading state
-    update(); // Update UI immediately with new selection
+    update(); // Keep the last scores visible until the new result arrives
 
     if (competitionId != null) {
       // Load results in background without blocking UI
@@ -161,9 +158,7 @@ class UserScoreController extends GetxController {
     );
     _isLoading = true;
     _error = null;
-    _userResult = null; // Clear old data
-    _examFallbackScores = [];
-    update(); // Notify UI of loading state
+    update(); // Keep the last scores on screen while refreshing
 
     try {
       final result = await _userResultsService.getUserLeaderboardResult(
@@ -172,23 +167,54 @@ class UserScoreController extends GetxController {
 
       if (result == null) {
         logger.w('loadUserResult: No results found');
-        _userResult = null;
-        await _loadExamFallbackScores();
-        _error = _examFallbackScores.isEmpty
-            ? 'No results found for this competition'
-            : null;
+        final replacedFallback = await _loadExamFallbackScores();
+        if (!replacedFallback) {
+          if (!_hasVisibleScores) {
+            _error = 'Failed to load results. Please try again.';
+          }
+        } else if (_examFallbackScores.isEmpty) {
+          await _clearDisplayedScores();
+          _error = 'No results found for this competition';
+        } else {
+          _userResult = null;
+          _error = null;
+          await _persistScores();
+        }
       } else {
         logger.i('loadUserResult: Successfully loaded results');
-        _userResult = result;
-        if (result.exams.isEmpty) {
-          await _loadExamFallbackScores();
+        if (result.exams.isNotEmpty) {
+          _userResult = result;
+          _error = null;
+          await _persistScores();
+        } else {
+          final previousResult = _userResult;
+          final previousFallback = List<CompetetionExam>.from(
+            _examFallbackScores,
+          );
+          final replacedFallback = await _loadExamFallbackScores();
+          if (!replacedFallback) {
+            _userResult = previousResult;
+            _examFallbackScores = previousFallback;
+            if (!_hasVisibleScores) {
+              _error = 'Failed to load results. Please try again.';
+            }
+          } else {
+            _userResult = result;
+            if (!_hasVisibleScores) {
+              await _clearDisplayedScores();
+              _error = 'No results found for this competition';
+            } else {
+              _error = null;
+              await _persistScores();
+            }
+          }
         }
-        _error = null;
       }
     } catch (e) {
       logger.e('Failed to load user result: $e');
-      _error = 'Failed to load results. Please try again.';
-      _userResult = null;
+      if (!_hasVisibleScores) {
+        _error = 'Failed to load results. Please try again.';
+      }
     } finally {
       _isLoading = false;
       update(); // Notify UI of completion
@@ -199,12 +225,67 @@ class UserScoreController extends GetxController {
     await loadUserResult();
   }
 
-  Future<void> _loadExamFallbackScores() async {
+  bool get _hasVisibleScores {
+    final result = _userResult;
+    if (result != null && result.hasUserAttempted && result.exams.isNotEmpty) {
+      return true;
+    }
+    return _examFallbackScores.isNotEmpty;
+  }
+
+  Future<void> _restoreCachedScores() async {
+    final userId = _user?.id;
+    if (userId == null) {
+      return;
+    }
+
+    final cached = await _scoreCache.getUserHomeScores(userId);
+    if (cached == null) {
+      _userResult = null;
+      _examFallbackScores = [];
+      update();
+      return;
+    }
+
+    _userResult = cached.result;
+    _examFallbackScores = cached.fallback;
+    final competitionId = cached.result?.competitionId;
+    if (competitionId != null && competitionId != 0) {
+      _selectedCompetitionId = competitionId;
+    }
+    update();
+  }
+
+  Future<void> _persistScores() async {
+    final userId = _user?.id;
+    if (userId == null || !_hasVisibleScores) {
+      return;
+    }
+
+    await _scoreCache.setUserHomeScores(
+      userId: userId,
+      result: _userResult,
+      fallback: List<CompetetionExam>.from(_examFallbackScores),
+    );
+  }
+
+  Future<void> _clearDisplayedScores() async {
+    _userResult = null;
+    _examFallbackScores = [];
+    final userId = _user?.id;
+    if (userId != null) {
+      await _scoreCache.clearUserHomeScores(userId);
+    }
+  }
+
+  /// Returns true when the fallback list was replaced by a completed request.
+  /// A failed request keeps the scores already on screen.
+  Future<bool> _loadExamFallbackScores() async {
     final userId = _user?.id;
     final phoneNumber = _user?.phoneNumber;
     if (userId == null || phoneNumber == null || phoneNumber.isEmpty) {
       _examFallbackScores = [];
-      return;
+      return true;
     }
 
     _isLoadingExamFallback = true;
@@ -222,6 +303,7 @@ class UserScoreController extends GetxController {
           .toList();
 
       final fallbackScores = <CompetetionExam>[];
+      var failedFetches = 0;
       for (final exam in examModeExams) {
         if (fallbackScores.length >= 10) {
           break;
@@ -245,14 +327,24 @@ class UserScoreController extends GetxController {
             );
           }
         } catch (e) {
+          failedFetches++;
           logger.w('Fallback exam score fetch failed for exam ${exam.id}: $e');
         }
       }
 
+      final everyFetchFailed =
+          examModeExams.isNotEmpty &&
+          failedFetches >= examModeExams.length &&
+          fallbackScores.isEmpty;
+      if (everyFetchFailed) {
+        return false;
+      }
+
       _examFallbackScores = fallbackScores;
+      return true;
     } catch (e) {
       logger.e('Failed to load fallback exam scores: $e');
-      _examFallbackScores = [];
+      return false;
     } finally {
       _isLoadingExamFallback = false;
       update();

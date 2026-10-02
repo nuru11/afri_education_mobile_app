@@ -1,11 +1,15 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:vector_academy/controllers/exam/exam_controller.dart';
 import 'package:vector_academy/controllers/misc/downloads_controller.dart';
 import 'package:vector_academy/models/exam.dart';
 import 'package:vector_academy/models/models.dart';
+import 'package:vector_academy/services/services.dart';
 import 'package:vector_academy/utils/utils.dart';
 import 'package:vector_academy/views/exam/exam_detail_page.dart';
+import 'package:vector_academy/views/success_stories/success_stories_page.dart';
+import 'package:vector_academy/views/success_stories/success_story_detail_page.dart';
 
 class ExamPage extends StatelessWidget {
   const ExamPage({super.key});
@@ -40,8 +44,7 @@ class ExamPage extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
-              // Promotional Banner - Made more compact
-              _buildPromotionalBanner(context),
+              const _ExamSuccessStoriesStrip(),
               Expanded(
                 child: buildExamBrowseGrid(
                   context: context,
@@ -63,89 +66,198 @@ class ExamPage extends StatelessWidget {
       ),
     );
   }
+}
 
-  Widget _buildPromotionalBanner(BuildContext context) {
-    return Container(
-      margin: EdgeInsets.symmetric(
-        horizontal: 20,
-        vertical: 12,
-      ), // Reduced margins
-      padding: EdgeInsets.all(16), // Reduced padding
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFF1E3A8A), Color(0xFF3B82F6)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
+class _ExamSuccessStoriesStrip extends StatefulWidget {
+  const _ExamSuccessStoriesStrip();
+
+  @override
+  State<_ExamSuccessStoriesStrip> createState() =>
+      _ExamSuccessStoriesStripState();
+}
+
+class _ExamSuccessStoriesStripState extends State<_ExamSuccessStoriesStrip> {
+  List<SuccessStory> _stories = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadStories();
+  }
+
+  Future<void> _loadStories() async {
+    try {
+      final stories = await SuccessStoriesService().getSuccessStories();
+      if (!mounted) return;
+      setState(() => _stories = stories.take(8).toList());
+    } catch (e) {
+      logger.w('Failed to load exam success stories: $e');
+    }
+  }
+
+  void _openAll() {
+    Get.to(() => const SuccessStoriesPage());
+  }
+
+  void _openStory(SuccessStory story) {
+    Get.to(() => SuccessStoryDetailPage(story: story));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_stories.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 8, bottom: 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 8, 8),
+            child: Row(
               children: [
-                Text(
-                  "Test Your Knowledge",
-                  style: TextStyle(
-                    fontSize: 16, // Smaller font
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-                SizedBox(height: 6), // Reduced spacing
-                Text(
-                  "Practice with our comprehensive question bank",
-                  style: TextStyle(
-                    fontSize: 13, // Smaller font
-                    color: Colors.white.withValues(alpha: 0.9),
-                  ),
-                ),
-                SizedBox(height: 12), // Reduced spacing
-                MouseRegion(
-                  cursor: SystemMouseCursors.click,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      // TODO: Implement take exams functionality
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: Color(0xFF1E3A8A),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ), // Smaller button
-                    ),
-                    child: Text(
-                      "Take Exams",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                      ),
+                const Expanded(
+                  child: Text(
+                    'Success Stories',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF0F172A),
                     ),
                   ),
+                ),
+                TextButton(
+                  onPressed: _openAll,
+                  child: const Text('See all'),
                 ),
               ],
             ),
           ),
-          SizedBox(width: 12), // Reduced spacing
-          Container(
-            width: 60, // Smaller icon container
-            height: 60,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(30),
-            ),
-            child: Icon(
-              Icons.emoji_events,
-              size: 30, // Smaller icon
-              color: Colors.white,
+          SizedBox(
+            height: 92,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemCount: _stories.length,
+              separatorBuilder: (context, index) => const SizedBox(width: 10),
+              itemBuilder: (context, index) {
+                final story = _stories[index];
+                return _SuccessStoryCard(
+                  story: story,
+                  onTap: () => _openStory(story),
+                );
+              },
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _SuccessStoryCard extends StatelessWidget {
+  const _SuccessStoryCard({required this.story, required this.onTap});
+
+  final SuccessStory story;
+  final VoidCallback onTap;
+
+  String? get _photo {
+    final image = story.image?.trim();
+    if (image != null && image.isNotEmpty) return image;
+    final studentPhoto = story.studentPhoto?.trim();
+    if (studentPhoto != null && studentPhoto.isNotEmpty) return studentPhoto;
+    return null;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final photo = _photo;
+    final studentName = story.studentName?.trim();
+
+    return SizedBox(
+      width: 240,
+      child: Material(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(14),
+          child: Ink(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(10),
+              child: Row(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: SizedBox(
+                      width: 56,
+                      height: 56,
+                      child: photo == null
+                          ? const ColoredBox(
+                              color: Color(0xFFF1F5F9),
+                              child: Icon(
+                                Icons.emoji_events_outlined,
+                                color: Color(0xFF64748B),
+                              ),
+                            )
+                          : CachedNetworkImage(
+                              imageUrl: photo,
+                              fit: BoxFit.cover,
+                              errorWidget: (context, url, error) =>
+                                  const ColoredBox(
+                                    color: Color(0xFFF1F5F9),
+                                    child: Icon(
+                                      Icons.emoji_events_outlined,
+                                      color: Color(0xFF64748B),
+                                    ),
+                                  ),
+                            ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          story.title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF0F172A),
+                            height: 1.2,
+                          ),
+                        ),
+                        if (studentName != null && studentName.isNotEmpty) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            studentName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              color: Color(0xFF64748B),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -246,7 +358,6 @@ Widget _buildExamList(
   BuildContext context,
   ExamController controller, {
   List<Exam>? exams,
-  String title = 'Available Exams',
 }) {
   final items = exams ?? controller.exams;
   if (controller.isLoading) {
@@ -315,49 +426,19 @@ Widget _buildExamList(
     );
   }
 
-  return Padding(
-    padding: EdgeInsets.symmetric(horizontal: 10),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: Padding(
-                padding: EdgeInsets.only(bottom: 12),
-                child: Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
-                ),
-              ),
-            ),
-            IconButton(
-              onPressed: () => controller.refreshExams(),
-              icon: Icon(Icons.refresh, color: Colors.black87, size: 20),
-              tooltip: 'Refresh exams',
-            ),
-          ],
-        ),
-        Expanded(
-          child: RefreshIndicator(
-            onRefresh: controller.refreshExams,
-            child: ListView.builder(
-              physics: AlwaysScrollableScrollPhysics(),
-              itemCount: items.length,
-              itemBuilder: (context, index) {
-                final exam = items[index];
-                return GetBuilder<DownloadsController>(
-                  builder: (_) => _buildExamCard(context, exam, controller),
-                );
-              },
-            ),
-          ),
-        ),
-      ],
+  return RefreshIndicator(
+    onRefresh: controller.refreshExams,
+    child: ListView.separated(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+      itemCount: items.length,
+      separatorBuilder: (context, index) => const SizedBox(height: 10),
+      itemBuilder: (context, index) {
+        final exam = items[index];
+        return GetBuilder<DownloadsController>(
+          builder: (_) => _buildExamCard(context, exam, controller),
+        );
+      },
     ),
   );
 }
@@ -367,173 +448,139 @@ Widget _buildExamCard(
   Exam exam,
   ExamController controller,
 ) {
-  return GestureDetector(
-    behavior: HitTestBehavior.opaque,
-    onTap: () => controller.navigateToExamDetail(exam.id),
-    child: Container(
-      margin: EdgeInsets.only(bottom: 8),
-      decoration: BoxDecoration(
-        color: exam.isLocked ? Colors.grey[50] : Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: exam.isLocked
-              ? Colors.grey.withValues(alpha: 0.3)
-              : Colors.grey.withValues(alpha: 0.2),
-          width: 1,
+  final isCompleted = controller.completedExamIds.contains(exam.id);
+  final questionCount = exam.totalQuestions ?? 0;
+
+  return Container(
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(14),
+      border: Border.all(color: const Color(0xFFE2E8F0)),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.05),
+          blurRadius: 10,
+          offset: const Offset(0, 3),
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withValues(alpha: 0.05),
-            blurRadius: 8,
-            offset: Offset(0, 1),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: EdgeInsets.all(12),
-        child: Row(
-          children: [
-            Container(
-              width: 45,
-              height: 45,
-              decoration: BoxDecoration(
-                color: exam.isLocked ? Colors.grey[300] : Colors.blue[100],
-                borderRadius: BorderRadius.circular(8),
+      ],
+    ),
+    child: Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(14),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => controller.navigateToExamDetail(exam.id),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  exam.isLocked ? Icons.lock_outline : Icons.quiz_outlined,
+                  size: 22,
+                  color: const Color(0xFF64748B),
+                ),
               ),
-              child: Stack(
-                children: [
-                  Center(
-                    child: Icon(
-                      Icons.quiz,
-                      color: exam.isLocked
-                          ? Colors.grey[500]
-                          : Colors.blue[600],
-                      size: 24,
-                    ),
-                  ),
-                  if (exam.isLocked)
-                    Positioned(
-                      top: 2,
-                      right: 2,
-                      child: Container(
-                        width: 12,
-                        height: 12,
-                        decoration: BoxDecoration(
-                          color: Colors.red[600],
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(Icons.lock, color: Colors.white, size: 8),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      exam.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF0F172A),
+                        height: 1.2,
                       ),
                     ),
-                ],
-              ),
-            ),
-            SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    exam.title,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: exam.isLocked
-                          ? Colors.grey[600]
-                          : Colors.blue[700],
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  if (controller.completedExamIds.contains(exam.id))
-                    Container(
-                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: Colors.green.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(12),
+                    const SizedBox(height: 3),
+                    Text(
+                      '$questionCount questions · ${exam.duration} min',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: Color(0xFF64748B),
                       ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
+                    ),
+                    if (isCompleted || exam.isDownloaded || exam.isLocked) ...[
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
                         children: [
-                          Icon(
-                            Icons.check_circle,
-                            size: 12,
-                            color: Colors.green,
-                          ),
-                          SizedBox(width: 4),
-                          Text(
-                            'Completed',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.green[800],
+                          if (exam.isLocked)
+                            const _ExamStatusChip(
+                              label: 'Locked',
+                              color: Color(0xFFB45309),
+                              background: Color(0xFFFFF7ED),
                             ),
-                          ),
+                          if (isCompleted)
+                            const _ExamStatusChip(
+                              label: 'Completed',
+                              color: Color(0xFF15803D),
+                              background: Color(0xFFF0FDF4),
+                            ),
+                          if (exam.isDownloaded)
+                            const _ExamStatusChip(
+                              label: 'Downloaded',
+                              color: Color(0xFF15803D),
+                              background: Color(0xFFF0FDF4),
+                            ),
                         ],
                       ),
-                    ),
-                  SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.quiz_outlined,
-                        size: 12,
-                        color: Colors.grey[500],
-                      ),
-                      SizedBox(width: 4),
-                      Text(
-                        "${exam.totalQuestions} Q",
-                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                      ),
-                      SizedBox(width: 12),
-                      Icon(
-                        Icons.access_time,
-                        size: 12,
-                        color: Colors.grey[500],
-                      ),
-                      SizedBox(width: 4),
-                      Text(
-                        "${exam.duration}m",
-                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                      ),
                     ],
-                  ),
-                  SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Icon(
-                        exam.isDownloaded
-                            ? Icons.download_done
-                            : Icons.cloud_download,
-                        size: 12,
-                        color: exam.isDownloaded
-                            ? Colors.green[600]
-                            : Colors.orange[600],
-                      ),
-                      SizedBox(width: 4),
-                      Text(
-                        exam.isDownloaded ? "Downloaded" : "Not Downloaded",
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: exam.isDownloaded
-                              ? Colors.green[600]
-                              : Colors.orange[600],
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            SizedBox(width: 8),
-            SizedBox(width: 85, child: buildExamActionButton(exam, controller)),
-          ],
+              const SizedBox(width: 8),
+              buildExamActionButton(exam, controller),
+            ],
+          ),
         ),
       ),
     ),
   );
+}
+
+class _ExamStatusChip extends StatelessWidget {
+  const _ExamStatusChip({
+    required this.label,
+    required this.color,
+    required this.background,
+  });
+
+  final String label;
+  final Color color;
+  final Color background;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          color: color,
+        ),
+      ),
+    );
+  }
 }
 
 Widget buildExamActionButton(Exam exam, ExamController controller) {
@@ -601,36 +648,9 @@ Widget buildExamActionButton(Exam exam, ExamController controller) {
     );
   }
 
-  final backgroundColor = exam.isDownloaded
-      ? Colors.green[600]
-      : Colors.blue[600];
-  final icon = exam.isDownloaded ? Icons.open_in_new : Icons.info;
-  final label = exam.isDownloaded ? 'Open' : 'Details';
-
-  return ElevatedButton(
-    onPressed: () => controller.navigateToExamDetail(exam.id),
-    style: ElevatedButton.styleFrom(
-      backgroundColor: backgroundColor,
-      foregroundColor: Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-      padding: EdgeInsets.symmetric(horizontal: 6, vertical: 6),
-      minimumSize: Size(0, 0),
-    ),
-    child: Row(
-      mainAxisSize: MainAxisSize.min,
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Icon(icon, size: 10, color: Colors.white),
-        SizedBox(width: 3),
-        Flexible(
-          child: Text(
-            label,
-            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600),
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-      ],
-    ),
+  return const Icon(
+    Icons.chevron_right_rounded,
+    color: Color(0xFF94A3B8),
   );
 }
 
@@ -671,10 +691,13 @@ class ExamSearchDelegate extends SearchDelegate<Exam?> {
   @override
   Widget buildSuggestions(BuildContext context) {
     final controller = Get.find<ExamController>();
+    final exams = controller.exams
+        .where((exam) => exam.examCategory != null)
+        .toList();
     return ListView.builder(
-      itemCount: controller.exams.length,
+      itemCount: exams.length,
       itemBuilder: (context, index) =>
-          _buildExamCard(context, controller.exams[index], controller),
+          _buildExamCard(context, exams[index], controller),
     );
   }
 
@@ -697,6 +720,7 @@ Widget buildExamBrowseGrid({
   required ExamController controller,
   required List<ExamBrowseGroup> groups,
   required void Function(ExamBrowseGroup group) onTap,
+  bool compact = false,
 }) {
   if (controller.isLoading) {
     return const Center(child: CircularProgressIndicator());
@@ -745,71 +769,257 @@ Widget buildExamBrowseGrid({
     );
   }
 
+  if (compact) {
+    return RefreshIndicator(
+      onRefresh: controller.refreshExams,
+      child: ListView.separated(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+        itemCount: groups.length,
+        separatorBuilder: (context, index) => const SizedBox(height: 10),
+        itemBuilder: (context, index) {
+          final group = groups[index];
+          return _ExamSectionRow(group: group, onTap: () => onTap(group));
+        },
+      ),
+    );
+  }
+
   return RefreshIndicator(
     onRefresh: controller.refreshExams,
     child: GridView.builder(
+      clipBehavior: Clip.none,
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        crossAxisSpacing: 10,
-        mainAxisSpacing: 10,
-        childAspectRatio: 1,
+        crossAxisCount: 2,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+        childAspectRatio: 0.78,
       ),
       itemCount: groups.length,
       itemBuilder: (context, index) {
         final group = groups[index];
-        return Material(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(12),
-            onTap: () => onTap(group),
-            child: Ink(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFF3B82F6), width: 1.2),
-                gradient: const LinearGradient(
-                  colors: [Color(0xFFEFF6FF), Color(0xFFDBEAFE)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(8),
+        return _ExamBrowseCard(group: group, onTap: () => onTap(group));
+      },
+    ),
+  );
+}
+
+class _ExamBrowseCard extends StatefulWidget {
+  const _ExamBrowseCard({required this.group, required this.onTap});
+
+  final ExamBrowseGroup group;
+  final VoidCallback onTap;
+
+  @override
+  State<_ExamBrowseCard> createState() => _ExamBrowseCardState();
+}
+
+class _ExamBrowseCardState extends State<_ExamBrowseCard> {
+  bool _imageFailed = false;
+
+  bool get _hasThumbnail {
+    final thumbnail = widget.group.thumbnail?.trim();
+    return thumbnail != null && thumbnail.isNotEmpty && !_imageFailed;
+  }
+
+  String get _countLabel {
+    final count = widget.group.count;
+    return count == 1 ? '1 exam' : '$count exams';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(16),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: widget.onTap,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: _media()),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      group.name,
-                      textAlign: TextAlign.center,
-                      maxLines: 3,
+                      widget.group.name,
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF1E3A8A),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF0F172A),
                         height: 1.2,
                       ),
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 4),
                     Text(
-                      '${group.count}',
-                      style: TextStyle(
+                      _countLabel,
+                      style: const TextStyle(
                         fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.blue[700],
+                        fontWeight: FontWeight.w500,
+                        color: Color(0xFF64748B),
                       ),
                     ),
                   ],
                 ),
               ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _media() {
+    if (!_hasThumbnail) {
+      return _iconArea();
+    }
+
+    return CachedNetworkImage(
+      imageUrl: widget.group.thumbnail!,
+      fit: BoxFit.cover,
+      width: double.infinity,
+      height: double.infinity,
+      placeholder: (context, url) => _iconArea(showSpinner: true),
+      errorWidget: (context, url, error) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && !_imageFailed) {
+            setState(() => _imageFailed = true);
+          }
+        });
+        return _iconArea();
+      },
+    );
+  }
+
+  Widget _iconArea({bool showSpinner = false}) {
+    return ColoredBox(
+      color: const Color(0xFFF1F5F9),
+      child: Center(
+        child: showSpinner
+            ? const SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Icon(
+                Icons.quiz_outlined,
+                size: 32,
+                color: Color(0xFF64748B),
+              ),
+      ),
+    );
+  }
+}
+
+class _ExamSectionRow extends StatelessWidget {
+  const _ExamSectionRow({required this.group, required this.onTap});
+
+  final ExamBrowseGroup group;
+  final VoidCallback onTap;
+
+  String get _countLabel {
+    final count = group.count;
+    return count == 1 ? '1 exam' : '$count exams';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(14),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            child: Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF1F5F9),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.quiz_outlined,
+                    size: 22,
+                    color: Color(0xFF64748B),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        group.name,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF0F172A),
+                          height: 1.2,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        _countLabel,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: Color(0xFF64748B),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                const Icon(
+                  Icons.chevron_right_rounded,
+                  color: Color(0xFF94A3B8),
+                ),
+              ],
             ),
           ),
-        );
-      },
-    ),
-  );
+        ),
+      ),
+    );
+  }
 }
 
 class ExamSectionsPage extends StatelessWidget {
@@ -844,11 +1054,13 @@ class ExamSectionsPage extends StatelessWidget {
           child: buildExamBrowseGrid(
             context: context,
             controller: controller,
+            compact: true,
             groups: controller.sectionsForCategory(categoryId: categoryId),
             onTap: (group) {
               Get.to(
                 () => ExamSectionExamsPage(
                   categoryId: categoryId,
+                  categoryName: categoryName,
                   sectionId: group.id,
                   sectionName: group.name,
                 ),
@@ -865,11 +1077,13 @@ class ExamSectionExamsPage extends StatelessWidget {
   const ExamSectionExamsPage({
     super.key,
     required this.categoryId,
+    required this.categoryName,
     required this.sectionId,
     required this.sectionName,
   });
 
   final int? categoryId;
+  final String categoryName;
   final int? sectionId;
   final String sectionName;
 
@@ -880,7 +1094,7 @@ class ExamSectionExamsPage extends StatelessWidget {
         backgroundColor: Colors.white,
         appBar: AppBar(
           title: Text(
-            sectionName,
+            "Section: $sectionName | $categoryName",
             style: const TextStyle(
               color: Colors.black87,
               fontWeight: FontWeight.bold,
@@ -894,7 +1108,7 @@ class ExamSectionExamsPage extends StatelessWidget {
         body: SafeArea(
           child: Column(
             children: [
-              buildExamSubjectCategories(context, controller),
+              // buildExamSubjectCategories(context, controller),
               Expanded(
                 child: _buildExamList(
                   context,
@@ -903,7 +1117,6 @@ class ExamSectionExamsPage extends StatelessWidget {
                     categoryId: categoryId,
                     sectionId: sectionId,
                   ),
-                  title: sectionName,
                 ),
               ),
             ],
