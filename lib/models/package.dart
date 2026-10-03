@@ -12,6 +12,8 @@ class Package {
   final int durationDays;
   final List<int> exams;
   final List<int> subjects;
+  @JsonKey(name: 'exam_categories')
+  final List<int> examCategories;
   final int? grade;
   @JsonKey(name: 'includes_planner')
   final bool includesPlanner;
@@ -26,6 +28,7 @@ class Package {
     required this.durationDays,
     required this.exams,
     required this.subjects,
+    this.examCategories = const [],
     required this.grade,
     this.includesPlanner = false,
     required this.isLocked,

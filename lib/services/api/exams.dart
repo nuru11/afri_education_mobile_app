@@ -17,9 +17,7 @@ class ExamService extends GetxService {
     int? gradeId,
     bool onlyUnlocked = false,
   }) async {
-    final queryParams = <String, dynamic>{
-      'app_package': backendAppPackage,
-    };
+    final queryParams = <String, dynamic>{'app_package': backendAppPackage};
 
     if (examType != null) {
       queryParams['exam_type'] = examType;
@@ -53,6 +51,40 @@ class ExamService extends GetxService {
       return data.map((e) => Exam.fromJson(e)).toList();
     } else {
       throw ApiException(response.data['detail'] ?? 'Failed to fetch exams');
+    }
+  }
+
+  Future<List<ExamCategoryBrowse>> getExamCategories({
+    int? gradeId,
+    String? deviceId,
+  }) async {
+    final queryParams = <String, dynamic>{'app_package': backendAppPackage};
+    if (gradeId != null && gradeId > 0) {
+      queryParams['grade'] = gradeId;
+    }
+    if (deviceId != null && deviceId.isNotEmpty) {
+      queryParams['device'] = deviceId;
+    }
+
+    final response = await apiClient.get(
+      '/app/exam-categories/',
+      queryParameters: queryParams,
+      authenticated: BaseApiClient.accessToken.isNotEmpty,
+    );
+
+    if (response.statusCode == 200) {
+      final data = response.data as List;
+      return data
+          .map(
+            (item) => ExamCategoryBrowse.fromJson(
+              Map<String, dynamic>.from(item as Map),
+            ),
+          )
+          .toList();
+    } else {
+      throw ApiException(
+        response.data['detail'] ?? 'Failed to fetch exam categories',
+      );
     }
   }
 

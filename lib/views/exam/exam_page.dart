@@ -44,12 +44,26 @@ class ExamPage extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
-              const _ExamSuccessStoriesStrip(),
+              DecoratedBox(
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const _ExamSuccessStoriesStrip(),
+                    if (controller.showGradeTabs)
+                      _ExamGradeTabs(controller: controller),
+                  ],
+                ),
+              ),
               Expanded(
                 child: buildExamBrowseGrid(
                   context: context,
                   controller: controller,
                   groups: controller.categoryGroups,
+                  emptyLabel: 'No categories available',
                   onTap: (group) {
                     Get.to(
                       () => ExamSectionsPage(
@@ -63,6 +77,104 @@ class ExamPage extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _ExamGradeTabs extends StatelessWidget {
+  const _ExamGradeTabs({required this.controller});
+
+  final ExamController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 50,
+      margin: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        itemCount: controller.grades.length,
+        itemBuilder: (context, index) {
+          final grade = controller.grades[index];
+          final isSelected = controller.selectedGradeIndex == index;
+
+          return AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeInOut,
+            margin: const EdgeInsets.only(right: 12),
+            child: GestureDetector(
+              onTap: () => controller.selectGrade(index),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeInOut,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  gradient: isSelected
+                      ? const LinearGradient(
+                          colors: [Color(0xFF667eea), Color(0xFF764ba2)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        )
+                      : null,
+                  color: isSelected ? null : Colors.grey[50],
+                  borderRadius: BorderRadius.circular(25),
+                  border: Border.all(
+                    color: isSelected
+                        ? Colors.transparent
+                        : Colors.grey.withValues(alpha: 0.3),
+                    width: 1.5,
+                  ),
+                  boxShadow: isSelected
+                      ? [
+                          BoxShadow(
+                            color: const Color(
+                              0xFF667eea,
+                            ).withValues(alpha: 0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          ),
+                        ]
+                      : [
+                          BoxShadow(
+                            color: Colors.grey.withValues(alpha: 0.1),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (isSelected) ...[
+                      const Icon(
+                        Icons.check_circle,
+                        size: 16,
+                        color: Colors.white,
+                      ),
+                      const SizedBox(width: 6),
+                    ],
+                    Text(
+                      grade.name,
+                      style: TextStyle(
+                        color: isSelected ? Colors.white : Colors.grey[700],
+                        fontWeight: isSelected
+                            ? FontWeight.w600
+                            : FontWeight.w500,
+                        fontSize: 14,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -128,10 +240,7 @@ class _ExamSuccessStoriesStripState extends State<_ExamSuccessStoriesStrip> {
                     ),
                   ),
                 ),
-                TextButton(
-                  onPressed: _openAll,
-                  child: const Text('See all'),
-                ),
+                TextButton(onPressed: _openAll, child: const Text('See all')),
               ],
             ),
           ),
@@ -267,91 +376,91 @@ Widget buildExamSubjectCategories(
   BuildContext context,
   ExamController controller,
 ) {
-    return Container(
-      height: 50,
-      margin: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        physics: BouncingScrollPhysics(),
-        itemCount: controller.subjects.length,
-        itemBuilder: (context, index) {
-          final subject = controller.subjects[index];
-          final isSelected = controller.selectedSubjectIndex == index;
+  return Container(
+    height: 50,
+    margin: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+    child: ListView.builder(
+      scrollDirection: Axis.horizontal,
+      physics: BouncingScrollPhysics(),
+      itemCount: controller.subjects.length,
+      itemBuilder: (context, index) {
+        final subject = controller.subjects[index];
+        final isSelected = controller.selectedSubjectIndex == index;
 
-          return AnimatedContainer(
-            duration: Duration(milliseconds: 200),
-            curve: Curves.easeInOut,
-            margin: EdgeInsets.only(right: 12),
-            child: GestureDetector(
-              onTap: () {
-                controller.selectSubject(index);
-                logger.i("Clicked on subject: ${subject.name}");
-              },
-              child: MouseRegion(
-                cursor: SystemMouseCursors.click,
-                child: AnimatedContainer(
-                  duration: Duration(milliseconds: 200),
-                  curve: Curves.easeInOut,
-                  padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                  decoration: BoxDecoration(
-                    gradient: isSelected
-                        ? LinearGradient(
-                            colors: [Color(0xFF667eea), Color(0xFF764ba2)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          )
-                        : null,
-                    color: isSelected ? null : Colors.grey[50],
-                    borderRadius: BorderRadius.circular(25),
-                    border: Border.all(
-                      color: isSelected
-                          ? Colors.transparent
-                          : Colors.grey.withValues(alpha: 0.3),
-                      width: 1.5,
-                    ),
-                    boxShadow: isSelected
-                        ? [
-                            BoxShadow(
-                              color: Color(0xFF667eea).withValues(alpha: 0.3),
-                              blurRadius: 8,
-                              offset: Offset(0, 4),
-                            ),
-                          ]
-                        : [
-                            BoxShadow(
-                              color: Colors.grey.withValues(alpha: 0.1),
-                              blurRadius: 4,
-                              offset: Offset(0, 2),
-                            ),
-                          ],
+        return AnimatedContainer(
+          duration: Duration(milliseconds: 200),
+          curve: Curves.easeInOut,
+          margin: EdgeInsets.only(right: 12),
+          child: GestureDetector(
+            onTap: () {
+              controller.selectSubject(index);
+              logger.i("Clicked on subject: ${subject.name}");
+            },
+            child: MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: AnimatedContainer(
+                duration: Duration(milliseconds: 200),
+                curve: Curves.easeInOut,
+                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                decoration: BoxDecoration(
+                  gradient: isSelected
+                      ? LinearGradient(
+                          colors: [Color(0xFF667eea), Color(0xFF764ba2)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        )
+                      : null,
+                  color: isSelected ? null : Colors.grey[50],
+                  borderRadius: BorderRadius.circular(25),
+                  border: Border.all(
+                    color: isSelected
+                        ? Colors.transparent
+                        : Colors.grey.withValues(alpha: 0.3),
+                    width: 1.5,
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (isSelected) ...[
-                        Icon(Icons.check_circle, size: 16, color: Colors.white),
-                        SizedBox(width: 6),
-                      ],
-                      Text(
-                        subject.name,
-                        style: TextStyle(
-                          color: isSelected ? Colors.white : Colors.grey[700],
-                          fontWeight: isSelected
-                              ? FontWeight.w600
-                              : FontWeight.w500,
-                          fontSize: 14,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
+                  boxShadow: isSelected
+                      ? [
+                          BoxShadow(
+                            color: Color(0xFF667eea).withValues(alpha: 0.3),
+                            blurRadius: 8,
+                            offset: Offset(0, 4),
+                          ),
+                        ]
+                      : [
+                          BoxShadow(
+                            color: Colors.grey.withValues(alpha: 0.1),
+                            blurRadius: 4,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (isSelected) ...[
+                      Icon(Icons.check_circle, size: 16, color: Colors.white),
+                      SizedBox(width: 6),
                     ],
-                  ),
+                    Text(
+                      subject.name,
+                      style: TextStyle(
+                        color: isSelected ? Colors.white : Colors.grey[700],
+                        fontWeight: isSelected
+                            ? FontWeight.w600
+                            : FontWeight.w500,
+                        fontSize: 14,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
-          );
-        },
-      ),
-    );
+          ),
+        );
+      },
+    ),
+  );
 }
 
 Widget _buildExamList(
@@ -482,7 +591,7 @@ Widget _buildExamCard(
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
-                  exam.isLocked ? Icons.lock_outline : Icons.quiz_outlined,
+                  Icons.quiz_outlined,
                   size: 22,
                   color: const Color(0xFF64748B),
                 ),
@@ -512,18 +621,12 @@ Widget _buildExamCard(
                         color: Color(0xFF64748B),
                       ),
                     ),
-                    if (isCompleted || exam.isDownloaded || exam.isLocked) ...[
+                    if (isCompleted || exam.isDownloaded) ...[
                       const SizedBox(height: 8),
                       Wrap(
                         spacing: 6,
                         runSpacing: 6,
                         children: [
-                          if (exam.isLocked)
-                            const _ExamStatusChip(
-                              label: 'Locked',
-                              color: Color(0xFFB45309),
-                              background: Color(0xFFFFF7ED),
-                            ),
                           if (isCompleted)
                             const _ExamStatusChip(
                               label: 'Completed',
@@ -584,34 +687,6 @@ class _ExamStatusChip extends StatelessWidget {
 }
 
 Widget buildExamActionButton(Exam exam, ExamController controller) {
-  if (exam.isLocked) {
-    return ElevatedButton(
-      onPressed: () => openExamPurchase(exam),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.orange[700],
-        foregroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-        padding: EdgeInsets.symmetric(horizontal: 6, vertical: 6),
-        minimumSize: Size(0, 0),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.lock_open, size: 10, color: Colors.white),
-          SizedBox(width: 3),
-          Flexible(
-            child: Text(
-              "Unlock",
-              style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   if (exam.isLoadingQuestion) {
     // Downloading exam
     return ElevatedButton(
@@ -648,10 +723,7 @@ Widget buildExamActionButton(Exam exam, ExamController controller) {
     );
   }
 
-  return const Icon(
-    Icons.chevron_right_rounded,
-    color: Color(0xFF94A3B8),
-  );
+  return const Icon(Icons.chevron_right_rounded, color: Color(0xFF94A3B8));
 }
 
 class ExamSearchDelegate extends SearchDelegate<Exam?> {
@@ -721,6 +793,7 @@ Widget buildExamBrowseGrid({
   required List<ExamBrowseGroup> groups,
   required void Function(ExamBrowseGroup group) onTap,
   bool compact = false,
+  String emptyLabel = 'No exams available',
 }) {
   if (controller.isLoading) {
     return const Center(child: CircularProgressIndicator());
@@ -754,9 +827,7 @@ Widget buildExamBrowseGrid({
             height: MediaQuery.of(context).size.height * 0.45,
             child: Center(
               child: Text(
-                controller.isOffline
-                    ? 'No downloaded exams'
-                    : 'No exams available',
+                controller.isOffline ? 'No downloaded exams' : emptyLabel,
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -773,6 +844,7 @@ Widget buildExamBrowseGrid({
     return RefreshIndicator(
       onRefresh: controller.refreshExams,
       child: ListView.separated(
+        clipBehavior: Clip.hardEdge,
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         itemCount: groups.length,
@@ -788,7 +860,7 @@ Widget buildExamBrowseGrid({
   return RefreshIndicator(
     onRefresh: controller.refreshExams,
     child: GridView.builder(
-      clipBehavior: Clip.none,
+      clipBehavior: Clip.hardEdge,
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -974,10 +1046,10 @@ class _ExamSectionRow extends StatelessWidget {
                     color: const Color(0xFFF1F5F9),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(
-                    Icons.quiz_outlined,
+                  child: Icon(
+                    group.isLocked ? Icons.lock_outline : Icons.quiz_outlined,
                     size: 22,
-                    color: Color(0xFF64748B),
+                    color: const Color(0xFF64748B),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -1055,8 +1127,17 @@ class ExamSectionsPage extends StatelessWidget {
             context: context,
             controller: controller,
             compact: true,
+            emptyLabel: 'No sections available',
             groups: controller.sectionsForCategory(categoryId: categoryId),
             onTap: (group) {
+              final id = categoryId;
+              if (group.isLocked && id != null) {
+                openCategoryPurchase(
+                  categoryId: id,
+                  categoryName: categoryName,
+                );
+                return;
+              }
               Get.to(
                 () => ExamSectionExamsPage(
                   categoryId: categoryId,

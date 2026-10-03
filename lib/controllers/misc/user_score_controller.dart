@@ -35,7 +35,20 @@ class UserScoreController extends GetxController {
   bool _isLoadingExamFallback = false;
   bool get isLoadingExamFallback => _isLoadingExamFallback;
 
+  bool _reloadQueued = false;
+  bool _scoresNeedServerRefresh = false;
+  final List<CompetetionExam> _pendingLocalScores = [];
+
   User? _user;
+
+  List<CompetetionExam> get visibleHomeExams {
+    final result = _userResult;
+    final base =
+        result != null && result.hasUserAttempted && result.exams.isNotEmpty
+        ? result.exams
+        : _examFallbackScores;
+    return _withPending(base);
+  }
 
   @override
   void onInit() {
@@ -147,9 +160,10 @@ class UserScoreController extends GetxController {
       return;
     }
 
-    // Prevent loading if already loading
+    // A refresh requested while a load is in flight must still run afterward.
     if (_isLoading) {
-      logger.w('loadUserResult: Already loading, skipping');
+      _reloadQueued = true;
+      logger.w('loadUserResult: Already loading, will refresh again');
       return;
     }
 
@@ -183,6 +197,7 @@ class UserScoreController extends GetxController {
       } else {
         logger.i('loadUserResult: Successfully loaded results');
         if (result.exams.isNotEmpty) {
+          _retainPending(result.exams);
           _userResult = result;
           _error = null;
           await _persistScores();
@@ -218,11 +233,50 @@ class UserScoreController extends GetxController {
     } finally {
       _isLoading = false;
       update(); // Notify UI of completion
+      if (_reloadQueued) {
+        _reloadQueued = false;
+        await loadUserResult();
+      }
     }
   }
 
   Future<void> refreshResults() async {
     await loadUserResult();
+  }
+
+  /// Shows a just-finished exam on Home immediately, then reloads server scores.
+  void publishFinishedExamScore({
+    required String examName,
+    required int correctAnswers,
+    required int totalQuestions,
+  }) {
+    final name = examName.trim();
+    if (name.isEmpty || totalQuestions <= 0) {
+      return;
+    }
+
+    final entry = CompetetionExam(
+      examName: name,
+      score: correctAnswers.toDouble(),
+      totalQuestions: totalQuestions,
+    );
+    _pendingLocalScores.removeWhere((exam) => exam.examName == name);
+    _pendingLocalScores.insert(0, entry);
+    _examFallbackScores = _withPending(
+      _examFallbackScores.where((exam) => exam.examName != name).toList(),
+    );
+    _scoresNeedServerRefresh = true;
+    _error = null;
+    _persistScores();
+    update();
+    refreshResults();
+  }
+
+  Future<void> refreshHomeScoresIfNeeded() async {
+    if (!_scoresNeedServerRefresh) {
+      return;
+    }
+    await refreshResults();
   }
 
   bool get _hasVisibleScores {
@@ -242,13 +296,13 @@ class UserScoreController extends GetxController {
     final cached = await _scoreCache.getUserHomeScores(userId);
     if (cached == null) {
       _userResult = null;
-      _examFallbackScores = [];
+      _examFallbackScores = List<CompetetionExam>.from(_pendingLocalScores);
       update();
       return;
     }
 
     _userResult = cached.result;
-    _examFallbackScores = cached.fallback;
+    _examFallbackScores = _withPending(cached.fallback);
     final competitionId = cached.result?.competitionId;
     if (competitionId != null && competitionId != 0) {
       _selectedCompetitionId = competitionId;
@@ -270,6 +324,14 @@ class UserScoreController extends GetxController {
   }
 
   Future<void> _clearDisplayedScores() async {
+    if (_pendingLocalScores.isNotEmpty) {
+      _userResult = null;
+      _examFallbackScores = List<CompetetionExam>.from(_pendingLocalScores);
+      _error = null;
+      await _persistScores();
+      return;
+    }
+
     _userResult = null;
     _examFallbackScores = [];
     final userId = _user?.id;
@@ -278,13 +340,46 @@ class UserScoreController extends GetxController {
     }
   }
 
+  List<CompetetionExam> _withPending(List<CompetetionExam> scores) {
+    if (_pendingLocalScores.isEmpty) {
+      return scores;
+    }
+
+    final names = scores.map((exam) => exam.examName).toSet();
+    final missing = _pendingLocalScores
+        .where((exam) => !names.contains(exam.examName))
+        .toList();
+    if (missing.isEmpty) {
+      return scores;
+    }
+    return [...missing, ...scores];
+  }
+
+  void _retainPending(List<CompetetionExam> serverExams) {
+    if (serverExams.isEmpty || _pendingLocalScores.isEmpty) {
+      return;
+    }
+
+    final names = serverExams.map((exam) => exam.examName).toSet();
+    _pendingLocalScores.removeWhere((exam) => names.contains(exam.examName));
+    _scoresNeedServerRefresh = _pendingLocalScores.isNotEmpty;
+  }
+
+  bool _countsAsExamMode(Exam exam) {
+    final mode = exam.modeType.toLowerCase();
+    return mode == 'exam_mode' ||
+        mode == 'exam' ||
+        mode == 'exam mode' ||
+        mode == 'both';
+  }
+
   /// Returns true when the fallback list was replaced by a completed request.
   /// A failed request keeps the scores already on screen.
   Future<bool> _loadExamFallbackScores() async {
     final userId = _user?.id;
     final phoneNumber = _user?.phoneNumber;
     if (userId == null || phoneNumber == null || phoneNumber.isEmpty) {
-      _examFallbackScores = [];
+      _examFallbackScores = _withPending(const []);
       return true;
     }
 
@@ -298,7 +393,7 @@ class UserScoreController extends GetxController {
         gradeId: _user!.grade.id,
       );
       final examModeExams = exams
-          .where((exam) => exam.modeType == 'exam_mode')
+          .where(_countsAsExamMode)
           .take(20)
           .toList();
 
@@ -340,7 +435,8 @@ class UserScoreController extends GetxController {
         return false;
       }
 
-      _examFallbackScores = fallbackScores;
+      _retainPending(fallbackScores);
+      _examFallbackScores = _withPending(fallbackScores);
       return true;
     } catch (e) {
       logger.e('Failed to load fallback exam scores: $e');

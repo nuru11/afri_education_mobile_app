@@ -18,6 +18,11 @@ Package _$PackageFromJson(Map<String, dynamic> json) => Package(
   subjects: (json['subjects'] as List<dynamic>)
       .map((e) => (e as num).toInt())
       .toList(),
+  examCategories:
+      (json['exam_categories'] as List<dynamic>?)
+          ?.map((e) => (e as num).toInt())
+          .toList() ??
+      const [],
   grade: (json['grade'] as num?)?.toInt(),
   includesPlanner: json['includes_planner'] as bool? ?? false,
   isLocked: json['is_locked'] as bool,
@@ -31,6 +36,7 @@ Map<String, dynamic> _$PackageToJson(Package instance) => <String, dynamic>{
   'duration_days': instance.durationDays,
   'exams': instance.exams,
   'subjects': instance.subjects,
+  'exam_categories': instance.examCategories,
   'grade': instance.grade,
   'includes_planner': instance.includesPlanner,
   'is_locked': instance.isLocked,

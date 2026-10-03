@@ -13,6 +13,7 @@ class ExamBrowseGroup {
   final int sortOrder;
   final int count;
   final String? thumbnail;
+  final bool isLocked;
 
   const ExamBrowseGroup({
     required this.id,
@@ -20,6 +21,7 @@ class ExamBrowseGroup {
     required this.sortOrder,
     required this.count,
     this.thumbnail,
+    this.isLocked = false,
   });
 }
 
@@ -46,6 +48,8 @@ class ExamController extends GetxController {
 
   List<Exam> _exams = [];
   List<Exam> get exams => _exams;
+  List<ExamCategoryBrowse> _categories = [];
+  bool _categoriesFromApi = false;
   Set<int> _completedExamIds = {};
   Set<int> get completedExamIds => _completedExamIds;
 
@@ -55,25 +59,42 @@ class ExamController extends GetxController {
   int _selectedSubjectIndex = 0;
   int get selectedSubjectIndex => _selectedSubjectIndex;
 
+  List<Grade> _grades = [];
+  List<Grade> get grades => _grades;
+  int _selectedGradeIndex = 0;
+  int get selectedGradeIndex => _selectedGradeIndex;
+  bool get showGradeTabs => _user == null && _grades.isNotEmpty;
+
   String? _error;
   String? get error => _error;
+
+  int? get _effectiveGradeId {
+    if (_user != null) return _user!.grade.id;
+    if (_grades.isNotEmpty &&
+        _selectedGradeIndex >= 0 &&
+        _selectedGradeIndex < _grades.length) {
+      return _grades[_selectedGradeIndex].id;
+    }
+    return null;
+  }
 
   @override
   void onInit() async {
     super.onInit();
     _user = await HiveUserStorage().getUser();
+    await _prepareGuestGrades();
     loadExams();
     loadSubjects();
     _completedExamIds = await _hiveExamStorage.completedExamIds();
 
     HiveUserStorage().listen((event) {
       _user = event;
-      loadExams();
+      _onUserChanged();
     }, 'user');
 
     _internetConnection.onStatusChange.listen((event) {
       if (event == InternetStatus.connected) {
-        loadExams();
+        _onReconnect();
       } else {
         _applyOfflineFilter();
       }
@@ -87,6 +108,47 @@ class ExamController extends GetxController {
       _subjects = [_allPlaceholderSubject, ...event];
       update();
     }, 'subjects');
+  }
+
+  Future<void> _prepareGuestGrades() async {
+    if (_user != null) {
+      _grades = [];
+      _selectedGradeIndex = 0;
+      return;
+    }
+    await loadGrades();
+  }
+
+  Future<void> _onUserChanged() async {
+    await _prepareGuestGrades();
+    loadExams();
+  }
+
+  Future<void> _onReconnect() async {
+    await _prepareGuestGrades();
+    loadExams();
+  }
+
+  Future<void> loadGrades() async {
+    if (_user != null) return;
+    try {
+      _grades = await GradeService().getGrades(backendAppPackage);
+      if (_selectedGradeIndex >= _grades.length) {
+        _selectedGradeIndex = 0;
+      }
+      update();
+    } catch (e) {
+      logger.e(e);
+    }
+  }
+
+  void selectGrade(int index) {
+    if (index == _selectedGradeIndex || index < 0 || index >= _grades.length) {
+      return;
+    }
+    _selectedGradeIndex = index;
+    update();
+    loadExams();
   }
 
   Future<void> loadSubjects() async {
@@ -129,12 +191,28 @@ class ExamController extends GetxController {
     try {
       if (!_isOffline) {
         final device = await UserDevice.getDeviceInfo(_user?.phoneNumber ?? '');
-        final grade = _user?.grade;
-        final exams_ = await _examService.getAvailableExams(
-          device.id,
-          gradeId: grade?.id,
-        );
-        await _hiveExamStorage.setExams(exams_);
+        final gradeId = _effectiveGradeId;
+        try {
+          final exams_ = await _examService.getAvailableExams(
+            device.id,
+            gradeId: gradeId,
+          );
+          await _hiveExamStorage.setExams(exams_);
+        } catch (e) {
+          // Keep exams already stored on the device.
+        }
+        try {
+          _categories = await _examService.getExamCategories(
+            gradeId: gradeId,
+            deviceId: device.id,
+          );
+          _categoriesFromApi = true;
+        } catch (e) {
+          _categories = [];
+          _categoriesFromApi = false;
+        }
+      } else {
+        _categoriesFromApi = false;
       }
       _exams = await _visibleExams();
     } catch (e) {
@@ -175,10 +253,66 @@ class ExamController extends GetxController {
     return _subjects[_selectedSubjectIndex].id;
   }
 
-  List<ExamBrowseGroup> get categoryGroups => _groupsFor(null);
+  List<ExamBrowseGroup> get categoryGroups {
+    if (!_categoriesFromApi) return _groupsFor(null);
+    return [
+      for (final category in _categories)
+        ExamBrowseGroup(
+          id: category.id,
+          name: category.name,
+          sortOrder: category.sortOrder,
+          count: _countExams(categoryId: category.id),
+          thumbnail: category.thumbnail,
+        ),
+    ];
+  }
 
   List<ExamBrowseGroup> sectionsForCategory({int? categoryId}) {
-    return _groupsFor(categoryId, sections: true);
+    if (!_categoriesFromApi || categoryId == null) {
+      return _groupsFor(categoryId, sections: true);
+    }
+    ExamCategoryBrowse? category;
+    for (final item in _categories) {
+      if (item.id == categoryId) {
+        category = item;
+        break;
+      }
+    }
+    final groups = <ExamBrowseGroup>[
+      for (final section in category?.sections ?? const <ExamGrouping>[])
+        ExamBrowseGroup(
+          id: section.id,
+          name: section.name,
+          sortOrder: section.sortOrder,
+          count: _countExams(categoryId: categoryId, sectionId: section.id),
+          isLocked: section.isLocked,
+        ),
+    ];
+    final unsectioned = _countExams(categoryId: categoryId, unsectioned: true);
+    if (unsectioned > 0) {
+      groups.add(
+        ExamBrowseGroup(
+          id: null,
+          name: generalSectionName,
+          sortOrder: 1 << 20,
+          count: unsectioned,
+        ),
+      );
+    }
+    return groups;
+  }
+
+  int _countExams({
+    required int categoryId,
+    int? sectionId,
+    bool unsectioned = false,
+  }) {
+    return _exams.where((exam) {
+      if (exam.examCategory?.id != categoryId) return false;
+      if (unsectioned) return exam.section == null;
+      if (sectionId == null) return true;
+      return exam.section?.id == sectionId;
+    }).length;
   }
 
   List<ExamBrowseGroup> _groupsFor(int? categoryId, {bool sections = false}) {

@@ -19,7 +19,8 @@ Widget buildPackagePriceLabel({
 }) {
   final hasDiscount = controller.hasReferralDiscountForPackage(package.id);
   final displayAmount = controller.displayAmountForPackage(package);
-  final defaultPriceStyle = priceStyle ??
+  final defaultPriceStyle =
+      priceStyle ??
       const TextStyle(
         fontSize: 24,
         fontWeight: FontWeight.w800,
@@ -44,10 +45,7 @@ Widget buildPackagePriceLabel({
           style: defaultPriceStyle.copyWith(color: Colors.green.shade700),
         ),
       ] else
-        Text(
-          '${formatEtbAmount(displayAmount)} ETB',
-          style: defaultPriceStyle,
-        ),
+        Text('${formatEtbAmount(displayAmount)} ETB', style: defaultPriceStyle),
       if (showPerYear)
         const Text(
           'per year',
@@ -79,7 +77,8 @@ Widget buildReferralCodeSection({
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           filled: true,
           fillColor: Colors.grey.shade50,
-          suffixIcon: controller.referralValidationStatus ==
+          suffixIcon:
+              controller.referralValidationStatus ==
                   ReferralValidationStatus.loading
               ? const Padding(
                   padding: EdgeInsets.all(12),
@@ -90,12 +89,12 @@ Widget buildReferralCodeSection({
                   ),
                 )
               : controller.referralValidationStatus ==
-                      ReferralValidationStatus.valid
-                  ? Icon(Icons.check_circle, color: Colors.green.shade600)
-                  : controller.referralValidationStatus ==
-                          ReferralValidationStatus.invalid
-                      ? Icon(Icons.error_outline, color: Colors.red.shade400)
-                      : null,
+                    ReferralValidationStatus.valid
+              ? Icon(Icons.check_circle, color: Colors.green.shade600)
+              : controller.referralValidationStatus ==
+                    ReferralValidationStatus.invalid
+              ? Icon(Icons.error_outline, color: Colors.red.shade400)
+              : null,
         ),
         textCapitalization: TextCapitalization.characters,
         maxLength: 5,
@@ -157,9 +156,7 @@ Widget buildPurchaseTypeSection({required PaymentController controller}) {
             hintText: '9xxxxxxxx',
             filled: true,
             fillColor: Colors.grey.shade50,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           ),
         ),
         if (controller.recipientLookupStatus == RecipientLookupStatus.loading)
@@ -277,6 +274,13 @@ class PaymentPage extends StatelessWidget {
     final String? targetExamName = args is Map
         ? args['examName'] as String?
         : null;
+    final dynamic rawCategoryId = args is Map ? args['categoryId'] : null;
+    final int? targetCategoryId = rawCategoryId is int
+        ? rawCategoryId
+        : int.tryParse(rawCategoryId?.toString() ?? '');
+    final String? targetCategoryName = args is Map
+        ? args['categoryName'] as String?
+        : null;
     final bool prioritizePlanner =
         args is Map && args['prioritizePlanner'] == true;
 
@@ -299,6 +303,7 @@ class PaymentPage extends StatelessWidget {
                   context,
                   targetSubjectName,
                   targetExamName: targetExamName,
+                  targetCategoryName: targetCategoryName,
                   prioritizePlanner: prioritizePlanner,
                 ),
                 Expanded(
@@ -309,6 +314,8 @@ class PaymentPage extends StatelessWidget {
                     targetSubjectName: targetSubjectName,
                     targetExamId: targetExamId,
                     targetExamName: targetExamName,
+                    targetCategoryId: targetCategoryId,
+                    targetCategoryName: targetCategoryName,
                     prioritizePlanner: prioritizePlanner,
                   ),
                 ),
@@ -324,23 +331,30 @@ class PaymentPage extends StatelessWidget {
     BuildContext context,
     String? targetSubjectName, {
     String? targetExamName,
+    String? targetCategoryName,
     bool prioritizePlanner = false,
   }) {
+    final hasCategory =
+        targetCategoryName != null && targetCategoryName.isNotEmpty;
     final hasExam = targetExamName != null && targetExamName.isNotEmpty;
     final title = prioritizePlanner
         ? 'Unlock Planner'
+        : hasCategory
+        ? 'Unlock $targetCategoryName'
         : hasExam
-            ? 'Unlock $targetExamName'
-            : targetSubjectName == null || targetSubjectName.isEmpty
-                ? 'Choose Package'
-                : 'Unlock $targetSubjectName';
+        ? 'Unlock $targetExamName'
+        : targetSubjectName == null || targetSubjectName.isEmpty
+        ? 'Choose Package'
+        : 'Unlock $targetSubjectName';
     final subtitle = prioritizePlanner
         ? 'Select a planner package to continue'
+        : hasCategory
+        ? 'Pay once to unlock all sections'
         : hasExam
-            ? 'Pay once to unlock this exam'
-            : targetSubjectName == null || targetSubjectName.isEmpty
-                ? 'Select and pay for your subscription'
-                : 'Pay once to unlock all Sections';
+        ? 'Pay once to unlock this exam'
+        : targetSubjectName == null || targetSubjectName.isEmpty
+        ? 'Select and pay for your subscription'
+        : 'Pay once to unlock all Sections';
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
@@ -429,15 +443,22 @@ class PaymentPage extends StatelessWidget {
     String? targetSubjectName,
     int? targetExamId,
     String? targetExamName,
+    int? targetCategoryId,
+    String? targetCategoryName,
     bool prioritizePlanner = false,
   }) {
     if (controller.isLoading) {
       return _buildLoadingState();
     }
 
+    final hasCategory = targetCategoryId != null;
     final hasExam = targetExamId != null;
     List<Package> packagesToShow = controller.packages;
-    if (hasExam) {
+    if (hasCategory) {
+      packagesToShow = packagesToShow
+          .where((package) => package.examCategories.contains(targetCategoryId))
+          .toList();
+    } else if (hasExam) {
       packagesToShow = packagesToShow
           .where((package) => package.exams.contains(targetExamId))
           .toList();
@@ -458,11 +479,13 @@ class PaymentPage extends StatelessWidget {
         children: [
           // Available Packages
           Text(
-            hasExam
+            hasCategory
+                ? 'Packages for ${targetCategoryName ?? 'this category'}'
+                : hasExam
                 ? 'Packages for ${targetExamName ?? 'this exam'}'
                 : targetSubjectName == null || targetSubjectName.isEmpty
-                    ? 'Available Packages'
-                    : 'Recommended for $targetSubjectName',
+                ? 'Available Packages'
+                : 'Recommended for $targetSubjectName',
             style: const TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.w700,
@@ -526,8 +549,8 @@ class PaymentPage extends StatelessWidget {
           Expanded(
             child: packagesToShow.isEmpty && (prioritizePlanner || hasExam)
                 ? hasExam
-                    ? _buildExamPackagesEmptyState()
-                    : _buildPlannerPackagesEmptyState()
+                      ? _buildExamPackagesEmptyState()
+                      : _buildPlannerPackagesEmptyState()
                 : ListView.builder(
                     physics: const BouncingScrollPhysics(),
                     itemCount: packagesToShow.length,
@@ -562,8 +585,9 @@ class PaymentPage extends StatelessWidget {
   }
 
   List<Package> _plannerPackagesForUpgrade(List<Package> packages) {
-    final plannerPackages =
-        packages.where((package) => package.includesPlanner).toList();
+    final plannerPackages = packages
+        .where((package) => package.includesPlanner)
+        .toList();
     plannerPackages.sort((a, b) {
       final aPlannerOnly = a.subjects.isEmpty;
       final bPlannerOnly = b.subjects.isEmpty;
@@ -740,8 +764,9 @@ class PaymentPage extends StatelessWidget {
                                         vertical: 4,
                                       ),
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFF667eea)
-                                            .withValues(alpha: 0.1),
+                                        color: const Color(
+                                          0xFF667eea,
+                                        ).withValues(alpha: 0.1),
                                         borderRadius: BorderRadius.circular(8),
                                       ),
                                       child: const Text(
@@ -1374,7 +1399,6 @@ class _ReceiptUploadPageState extends State<_ReceiptUploadPage> {
               //   controller: controller,
               //   textController: controller.referralTextController,
               // ),
-
               const SizedBox(height: 24),
 
               // Submit Button

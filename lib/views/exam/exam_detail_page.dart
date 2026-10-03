@@ -14,6 +14,18 @@ import 'package:vector_academy/views/exam/exam_result_page.dart';
 import 'package:vector_academy/views/exam/question_page.dart';
 import 'package:vector_academy/views/views.dart';
 
+void openCategoryPurchase({
+  required int categoryId,
+  required String categoryName,
+}) {
+  final checkoutArgs = <String, dynamic>{
+    'categoryId': categoryId,
+    'categoryName': categoryName,
+  };
+  if (!requireAuthForPurchase(checkoutArgs: checkoutArgs)) return;
+  Get.toNamed(VIEWS.payments.path, arguments: checkoutArgs);
+}
+
 void openExamPurchase(Exam exam) {
   final checkoutArgs = <String, dynamic>{
     'examId': exam.id,
