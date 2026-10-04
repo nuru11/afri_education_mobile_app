@@ -83,6 +83,14 @@ class ExamCategoryBrowse {
       sections: sections,
     );
   }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'name': name,
+    'sort_order': sortOrder,
+    'thumbnail': thumbnail,
+    'sections': sections.map((section) => section.toJson()).toList(),
+  };
 }
 
 @JsonSerializable()

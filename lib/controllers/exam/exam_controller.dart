@@ -174,11 +174,18 @@ class ExamController extends GetxController {
       exam.isDownloaded = exam.questions.isNotEmpty;
     }
 
-    return exams.where((exam) {
-      if (!_isExamScreenExam(exam)) return false;
-      if (_isOffline && !hasDownloadedExamContent(exam)) return false;
-      return true;
-    }).toList();
+    return exams.where(_isExamScreenExam).toList();
+  }
+
+  Future<void> _restoreCachedCategories() async {
+    final cached = await _hiveExamStorage.getExamCategories(_effectiveGradeId);
+    if (cached.isEmpty) {
+      _categories = [];
+      _categoriesFromApi = false;
+      return;
+    }
+    _categories = cached;
+    _categoriesFromApi = true;
   }
 
   Future<void> loadExams() async {
@@ -207,15 +214,18 @@ class ExamController extends GetxController {
             deviceId: device.id,
           );
           _categoriesFromApi = true;
+          await _hiveExamStorage.setExamCategories(gradeId, _categories);
         } catch (e) {
-          _categories = [];
-          _categoriesFromApi = false;
+          await _restoreCachedCategories();
         }
       } else {
-        _categoriesFromApi = false;
+        await _restoreCachedCategories();
       }
       _exams = await _visibleExams();
     } catch (e) {
+      if (!_categoriesFromApi) {
+        await _restoreCachedCategories();
+      }
       _exams = await _visibleExams();
     } finally {
       _isLoading = false;

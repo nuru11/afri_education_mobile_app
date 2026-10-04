@@ -183,8 +183,83 @@ Widget buildPurchaseTypeSection({required PaymentController controller}) {
               ),
             ),
           ),
+        if (controller.recipientLookupStatus == RecipientLookupStatus.found &&
+            controller.recipientDevices.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          const Text(
+            'Unlock on one device',
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 8),
+          ...controller.recipientDevices.map(
+            (device) => _recipientDeviceChoice(
+              device: device,
+              selected: controller.selectedRecipientDeviceId == device.id,
+              onTap: () => controller.selectRecipientDevice(device.id),
+            ),
+          ),
+        ],
       ],
     ],
+  );
+}
+
+Widget _recipientDeviceChoice({
+  required GiftRecipientDevice device,
+  required bool selected,
+  required VoidCallback onTap,
+}) {
+  final titleColor = selected ? Colors.white : Colors.black87;
+  final subtitleColor = selected ? Colors.white70 : Colors.black54;
+  return Padding(
+    padding: const EdgeInsets.only(bottom: 8),
+    child: Material(
+      color: selected ? const Color(0xFF1F2937) : Colors.grey.shade100,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: selected ? const Color(0xFF1F2937) : Colors.grey.shade300,
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                selected
+                    ? Icons.radio_button_checked
+                    : Icons.radio_button_off,
+                color: selected ? Colors.white : Colors.black54,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      device.label,
+                      style: TextStyle(
+                        color: titleColor,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    if (device.osLabel.isNotEmpty)
+                      Text(
+                        device.osLabel,
+                        style: TextStyle(color: subtitleColor, fontSize: 12),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
   );
 }
 
@@ -451,25 +526,28 @@ class PaymentPage extends StatelessWidget {
       return _buildLoadingState();
     }
 
-    final hasCategory = targetCategoryId != null;
-    final hasExam = targetExamId != null;
+    final giftGrade = controller.showingRecipientGradePackages;
+    final hasCategory = targetCategoryId != null && !giftGrade;
+    final hasExam = targetExamId != null && !giftGrade;
     List<Package> packagesToShow = controller.packages;
-    if (hasCategory) {
-      packagesToShow = packagesToShow
-          .where((package) => package.examCategories.contains(targetCategoryId))
-          .toList();
-    } else if (hasExam) {
-      packagesToShow = packagesToShow
-          .where((package) => package.exams.contains(targetExamId))
-          .toList();
-    } else if (targetSubjectId != null) {
-      packagesToShow = _prioritizeTargetSubjectPackages(
-        packagesToShow,
-        targetSubjectId,
-      );
-    }
-    if (prioritizePlanner && !hasExam) {
-      packagesToShow = _plannerPackagesForUpgrade(packagesToShow);
+    if (!giftGrade) {
+      if (hasCategory) {
+        packagesToShow = packagesToShow
+            .where((package) => package.examCategories.contains(targetCategoryId))
+            .toList();
+      } else if (targetExamId != null) {
+        packagesToShow = packagesToShow
+            .where((package) => package.exams.contains(targetExamId))
+            .toList();
+      } else if (targetSubjectId != null) {
+        packagesToShow = _prioritizeTargetSubjectPackages(
+          packagesToShow,
+          targetSubjectId,
+        );
+      }
+      if (prioritizePlanner && targetExamId == null) {
+        packagesToShow = _plannerPackagesForUpgrade(packagesToShow);
+      }
     }
 
     return Container(
@@ -478,92 +556,183 @@ class PaymentPage extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Available Packages
-          Text(
-            hasCategory
-                ? 'Packages for ${targetCategoryName ?? 'this category'}'
-                : hasExam
-                ? 'Packages for ${targetExamName ?? 'this exam'}'
-                : targetSubjectName == null || targetSubjectName.isEmpty
-                ? 'Available Packages'
-                : 'Recommended for $targetSubjectName',
-            style: const TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.w700,
-              color: Colors.white,
-            ),
-          ),
-          if (targetSubjectId != null && !hasExam)
-            Padding(
-              padding: const EdgeInsets.only(top: 4),
-              child: Text(
-                'Showing $targetSubjectName first, then all other subjects/packages.',
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.85),
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-          const SizedBox(height: 16),
+          // Text(
+          //   hasCategory
+          //       ? 'Packages for ${targetCategoryName ?? 'this category'}'
+          //       : hasExam
+          //       ? 'Packages for ${targetExamName ?? 'this exam'}'
+          //       : targetSubjectName == null || targetSubjectName.isEmpty
+          //       ? 'Available Packages'
+          //       : 'Recommended for $targetSubjectName',
+          //   style: const TextStyle(
+          //     fontSize: 22,
+          //     fontWeight: FontWeight.w700,
+          //     color: Colors.white,
+          //   ),
+          // ),
+          // if (targetSubjectId != null && !hasExam)
+          //   Padding(
+          //     padding: const EdgeInsets.only(top: 4),
+          //     child: Text(
+          //       'Showing $targetSubjectName first, then all other subjects/packages.',
+          //       style: TextStyle(
+          //         color: Colors.white.withValues(alpha: 0.85),
+          //         fontSize: 13,
+          //         fontWeight: FontWeight.w500,
+          //       ),
+          //     ),
+          //   ),
+          // const SizedBox(height: 16),
 
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.08),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                buildReferralCodeSection(
-                  controller: controller,
-                  textController: controller.referralTextController,
-                ),
-                if (controller.referralValidationStatus ==
-                    ReferralValidationStatus.valid)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8),
-                    child: Text(
-                      '10% off applies to all packages below',
-                      style: TextStyle(
-                        color: Colors.green.shade700,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                buildPurchaseTypeSection(controller: controller),
-              ],
-            ),
-          ),
+          // Container(
+          //   padding: const EdgeInsets.all(16),
+          //   decoration: BoxDecoration(
+          //     color: Colors.white,
+          //     borderRadius: BorderRadius.circular(16),
+          //     boxShadow: [
+          //       BoxShadow(
+          //         color: Colors.black.withValues(alpha: 0.08),
+          //         blurRadius: 12,
+          //         offset: const Offset(0, 4),
+          //       ),
+          //     ],
+          //   ),
+          //   child: Column(
+          //     crossAxisAlignment: CrossAxisAlignment.stretch,
+          //     children: [
+          //       buildReferralCodeSection(
+          //         controller: controller,
+          //         textController: controller.referralTextController,
+          //       ),
+          //       if (controller.referralValidationStatus ==
+          //           ReferralValidationStatus.valid)
+          //         Padding(
+          //           padding: const EdgeInsets.only(top: 8),
+          //           child: Text(
+          //             '10% off applies to all packages below',
+          //             style: TextStyle(
+          //               color: Colors.green.shade700,
+          //               fontSize: 13,
+          //               fontWeight: FontWeight.w600,
+          //             ),
+          //           ),
+          //         ),
+          //       buildPurchaseTypeSection(controller: controller),
+          //     ],
+          //   ),
+          // ),
 
-          const SizedBox(height: 16),
+          // const SizedBox(height: 16),
 
           Expanded(
-            child: packagesToShow.isEmpty && (prioritizePlanner || hasExam)
+            child: packagesToShow.isEmpty &&
+                    controller.purchaseForSelf &&
+                    (prioritizePlanner || hasExam)
                 ? hasExam
                       ? _buildExamPackagesEmptyState()
                       : _buildPlannerPackagesEmptyState()
-                : ListView.builder(
-                    physics: const BouncingScrollPhysics(),
-                    itemCount: packagesToShow.length,
-                    itemBuilder: (context, index) {
-                      final package = packagesToShow[index];
-                      return _buildModernPackageCard(
-                        context,
-                        package,
-                        controller,
-                        index,
-                      );
-                    },
+                : SingleChildScrollView(
+  physics: const BouncingScrollPhysics(),
+  child: Column(
+    children: [
+      // Referral code section
+      Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.08),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            buildReferralCodeSection(
+              controller: controller,
+              textController: controller.referralTextController,
+            ),
+
+            if (controller.referralValidationStatus ==
+                ReferralValidationStatus.valid)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(
+                  '10% off applies to all packages below',
+                  style: TextStyle(
+                    color: Colors.green.shade700,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
                   ),
+                ),
+              ),
+
+            buildPurchaseTypeSection(
+              controller: controller,
+            ),
+          ],
+        ),
+      ),
+
+      const SizedBox(height: 16),
+
+      if (giftGrade) ...[
+        Text(
+          'Packages for ${controller.recipientGradeName ?? 'this grade'}',
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 12),
+      ],
+      if (controller.isLoadingGiftPackages)
+        const Padding(
+          padding: EdgeInsets.symmetric(vertical: 32),
+          child: Center(
+            child: CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+            ),
+          ),
+        )
+      else if (giftGrade && packagesToShow.isEmpty)
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 24),
+          child: Text(
+            'No packages are available for this grade yet.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        )
+      else
+      // Packages
+      ListView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: packagesToShow.length,
+        itemBuilder: (context, index) {
+          final package = packagesToShow[index];
+
+          return _buildModernPackageCard(
+            context,
+            package,
+            controller,
+            index,
+          );
+        },
+      ),
+    ],
+  ),
+),
           ),
         ],
       ),
@@ -1285,9 +1454,7 @@ class _ReceiptUploadPageState extends State<_ReceiptUploadPage> {
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
-                                  controller.purchaseForSelf
-                                      ? 'Course for: Myself'
-                                      : 'Gift for: ${controller.recipientPhone}',
+                                  controller.checkoutRecipientLabel,
                                   style: TextStyle(color: Colors.grey.shade700),
                                 ),
                               ),

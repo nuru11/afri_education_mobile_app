@@ -787,6 +787,33 @@ class ExamSearchDelegate extends SearchDelegate<Exam?> {
   }
 }
 
+class _OfflineCategoryEmpty extends StatelessWidget {
+  const _OfflineCategoryEmpty();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.symmetric(horizontal: 32),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            'No saved exam categories',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          SizedBox(height: 8),
+          Text(
+            'Open Exams once while online to save categories for offline use.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Color(0xFF64748B)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 Widget buildExamBrowseGrid({
   required BuildContext context,
   required ExamController controller,
@@ -826,13 +853,15 @@ Widget buildExamBrowseGrid({
           SizedBox(
             height: MediaQuery.of(context).size.height * 0.45,
             child: Center(
-              child: Text(
-                controller.isOffline ? 'No downloaded exams' : emptyLabel,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+              child: controller.isOffline && !compact
+                  ? const _OfflineCategoryEmpty()
+                  : Text(
+                      emptyLabel,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
             ),
           ),
         ],
