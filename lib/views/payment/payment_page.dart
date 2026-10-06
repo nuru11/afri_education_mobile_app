@@ -529,6 +529,7 @@ class PaymentPage extends StatelessWidget {
     final giftGrade = controller.showingRecipientGradePackages;
     final hasCategory = targetCategoryId != null && !giftGrade;
     final hasExam = targetExamId != null && !giftGrade;
+    final hasSubject = targetSubjectId != null && !giftGrade;
     List<Package> packagesToShow = controller.packages;
     if (!giftGrade) {
       if (hasCategory) {
@@ -541,7 +542,7 @@ class PaymentPage extends StatelessWidget {
             .toList();
       } else if (targetSubjectId != null) {
         packagesToShow = _prioritizeTargetSubjectPackages(
-          packagesToShow,
+          packagesToShow.where(_isSubjectPackage).toList(),
           targetSubjectId,
         );
       }
@@ -627,10 +628,12 @@ class PaymentPage extends StatelessWidget {
           Expanded(
             child: packagesToShow.isEmpty &&
                     controller.purchaseForSelf &&
-                    (prioritizePlanner || hasExam)
+                    (prioritizePlanner || hasExam || hasSubject)
                 ? hasExam
                       ? _buildExamPackagesEmptyState()
-                      : _buildPlannerPackagesEmptyState()
+                      : prioritizePlanner
+                      ? _buildPlannerPackagesEmptyState()
+                      : _buildSubjectPackagesEmptyState()
                 : SingleChildScrollView(
   physics: const BouncingScrollPhysics(),
   child: Column(
@@ -739,6 +742,12 @@ class PaymentPage extends StatelessWidget {
     );
   }
 
+  bool _isExamPackage(Package package) =>
+      package.exams.isNotEmpty || package.examCategories.isNotEmpty;
+
+  bool _isSubjectPackage(Package package) =>
+      package.subjects.isNotEmpty && !_isExamPackage(package);
+
   List<Package> _prioritizeTargetSubjectPackages(
     List<Package> packages,
     int targetSubjectId,
@@ -777,6 +786,23 @@ class PaymentPage extends StatelessWidget {
             color: Colors.white,
             fontSize: 16,
             fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSubjectPackagesEmptyState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Text(
+          'No subject packages are available for your grade yet.',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+            color: Colors.white.withValues(alpha: 0.9),
           ),
         ),
       ),
