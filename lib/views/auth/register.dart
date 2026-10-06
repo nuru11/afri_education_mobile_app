@@ -303,7 +303,10 @@ class Register extends StatelessWidget {
                       ),
                       TextButton(
                         onPressed: () {
-                          Get.toNamed(VIEWS.login.path);
+                          Get.toNamed(
+                            VIEWS.login.path,
+                            arguments: Get.arguments,
+                          );
                         },
                         child: Text(
                           'Login',

@@ -126,39 +126,49 @@ Widget buildPurchaseTypeSection({required PaymentController controller}) {
         style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
       ),
       const SizedBox(height: 8),
-      Row(
-        children: [
-          Expanded(
-            child: _purchaseTypeChoice(
-              label: 'For Myself',
-              selected: controller.purchaseForSelf,
-              onTap: () => controller.setPurchaseForSelf(true),
+      if (controller.lockGiftRecipient)
+        Text(
+          'Buying a course, exam, or plan for ${controller.recipientPhone}',
+          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+        )
+      else
+        Row(
+          children: [
+            Expanded(
+              child: _purchaseTypeChoice(
+                label: 'For Myself',
+                selected: controller.purchaseForSelf,
+                onTap: () => controller.setPurchaseForSelf(true),
+              ),
             ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: _purchaseTypeChoice(
-              label: 'Gift',
-              selected: !controller.purchaseForSelf,
-              onTap: () => controller.setPurchaseForSelf(false),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _purchaseTypeChoice(
+                label: 'Gift',
+                selected: !controller.purchaseForSelf,
+                onTap: () => controller.setPurchaseForSelf(false),
+              ),
+            ),
+          ],
+        ),
+      if (!controller.purchaseForSelf) ...[
+        if (!controller.lockGiftRecipient) ...[
+          const SizedBox(height: 12),
+          TextFormField(
+            controller: controller.recipientPhoneController,
+            keyboardType: TextInputType.phone,
+            onChanged: controller.setRecipientPhone,
+            decoration: InputDecoration(
+              labelText: 'Recipient phone number',
+              hintText: '9xxxxxxxx',
+              filled: true,
+              fillColor: Colors.grey.shade50,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
           ),
         ],
-      ),
-      if (!controller.purchaseForSelf) ...[
-        const SizedBox(height: 12),
-        TextFormField(
-          controller: controller.recipientPhoneController,
-          keyboardType: TextInputType.phone,
-          onChanged: controller.setRecipientPhone,
-          decoration: InputDecoration(
-            labelText: 'Recipient phone number',
-            hintText: '9xxxxxxxx',
-            filled: true,
-            fillColor: Colors.grey.shade50,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-        ),
         if (controller.recipientLookupStatus == RecipientLookupStatus.loading)
           const Padding(
             padding: EdgeInsets.only(top: 8),
@@ -358,8 +368,28 @@ class PaymentPage extends StatelessWidget {
         : null;
     final bool prioritizePlanner =
         args is Map && args['prioritizePlanner'] == true;
+    final String? giftPhone = args is Map
+        ? args[giftPhoneArgKey] as String?
+        : null;
+    final bool lockRecipient =
+        args is Map && args[lockRecipientArgKey] == true;
 
-    Get.put(PaymentController());
+    final paymentController = Get.put(PaymentController());
+    if (paymentController.needsGiftLockSync(
+      phone: giftPhone,
+      lock: lockRecipient,
+    )) {
+      if (lockRecipient && giftPhone != null && giftPhone.trim().isNotEmpty) {
+        paymentController.prepareLockedGift(giftPhone);
+      }
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!Get.isRegistered<PaymentController>()) return;
+        Get.find<PaymentController>().syncLockedGift(
+          phone: giftPhone,
+          lock: lockRecipient,
+        );
+      });
+    }
     return GetBuilder<PaymentController>(
       builder: (controller) => Scaffold(
         body: Container(

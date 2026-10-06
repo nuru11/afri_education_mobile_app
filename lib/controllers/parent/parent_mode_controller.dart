@@ -13,22 +13,33 @@ class ParentModeController extends GetxController {
   bool submitting = false;
   bool bootstrapped = false;
   bool modeEnabled = false;
+  AppAudience? audience;
   String? error;
   ParentLink? link;
   ParentOverview? overview;
 
+  bool get isParentAudience =>
+      FlavorConfig.supportsParentMode && audience == AppAudience.parent;
+
   bool get showDashboardLoading =>
-      FlavorConfig.supportsParentMode && modeEnabled && !bootstrapped;
+      FlavorConfig.supportsParentMode &&
+      !bootstrapped &&
+      (modeEnabled || isParentAudience);
 
   bool get showDashboard =>
       FlavorConfig.supportsParentMode &&
-      modeEnabled &&
       bootstrapped &&
-      link?.isAccepted == true;
+      link?.isAccepted == true &&
+      (modeEnabled || isParentAudience);
+
+  /// Parent-audience users stay on the link, waiting, or sign-in screen
+  /// until the student accepts.
+  bool get showParentShell => isParentAudience && !showDashboard;
 
   @override
   void onInit() {
     super.onInit();
+    audience = ConfigPreference.getAppAudience();
     final auth = Get.find<AuthService>();
     _applyLocalFlag(auth.user.value?.id);
     ever(auth.user, (user) {
@@ -37,6 +48,20 @@ class ParentModeController extends GetxController {
       bootstrap();
     });
     bootstrap();
+  }
+
+  Future<void> chooseAudience(AppAudience value) async {
+    audience = value;
+    await ConfigPreference.setAppAudience(value);
+    if (value == AppAudience.student) {
+      modeEnabled = false;
+      final user = Get.find<AuthService>().user.value;
+      if (user != null) {
+        await ConfigPreference.setParentModeEnabled(user.id, false);
+      }
+    }
+    update();
+    await bootstrap();
   }
 
   void _applyLocalFlag(int? userId) {
@@ -53,6 +78,7 @@ class ParentModeController extends GetxController {
       update();
       return;
     }
+    audience = ConfigPreference.getAppAudience();
     final user = Get.find<AuthService>().user.value;
     if (user == null) {
       link = null;
@@ -68,12 +94,21 @@ class ParentModeController extends GetxController {
     update();
     try {
       link = await _service.currentLink();
-      if (modeEnabled && link?.isAccepted == true) {
+      final parentHome = audience == AppAudience.parent;
+      if (link?.isAccepted == true && (modeEnabled || parentHome)) {
+        modeEnabled = true;
+        await ConfigPreference.setParentModeEnabled(user.id, true);
+        if (!parentHome) {
+          audience = AppAudience.parent;
+          await ConfigPreference.setAppAudience(AppAudience.parent);
+        }
         overview = await _service.overview(link!.id);
-      } else if (modeEnabled) {
-        modeEnabled = false;
-        await ConfigPreference.setParentModeEnabled(user.id, false);
+      } else {
         overview = null;
+        if (modeEnabled) {
+          modeEnabled = false;
+          await ConfigPreference.setParentModeEnabled(user.id, false);
+        }
       }
     } catch (e) {
       error = ApiErrorMessage.from(e);
@@ -96,7 +131,16 @@ class ParentModeController extends GetxController {
     update();
     try {
       link = await _service.requestLink(phone);
-      overview = null;
+      if (link?.isAccepted == true) {
+        final user = Get.find<AuthService>().user.value;
+        modeEnabled = true;
+        if (user != null) {
+          await ConfigPreference.setParentModeEnabled(user.id, true);
+        }
+        overview = await _service.overview(link!.id);
+      } else {
+        overview = null;
+      }
       return true;
     } catch (e) {
       error = ApiErrorMessage.from(e);
@@ -117,7 +161,11 @@ class ParentModeController extends GetxController {
       await _service.revokeLink(current.id);
       link = null;
       overview = null;
-      await leaveParentMode(updateUi: false);
+      modeEnabled = false;
+      final user = Get.find<AuthService>().user.value;
+      if (user != null) {
+        await ConfigPreference.setParentModeEnabled(user.id, false);
+      }
     } catch (e) {
       error = ApiErrorMessage.from(e);
     } finally {
@@ -130,7 +178,9 @@ class ParentModeController extends GetxController {
     final user = Get.find<AuthService>().user.value;
     final current = link;
     if (user == null || current == null || !current.isAccepted) return;
+    audience = AppAudience.parent;
     modeEnabled = true;
+    await ConfigPreference.setAppAudience(AppAudience.parent);
     await ConfigPreference.setParentModeEnabled(user.id, true);
     loading = true;
     update();
@@ -148,7 +198,9 @@ class ParentModeController extends GetxController {
 
   Future<void> leaveParentMode({bool updateUi = true}) async {
     final user = Get.find<AuthService>().user.value;
+    audience = AppAudience.student;
     modeEnabled = false;
+    await ConfigPreference.setAppAudience(AppAudience.student);
     if (user != null) {
       await ConfigPreference.setParentModeEnabled(user.id, false);
     }

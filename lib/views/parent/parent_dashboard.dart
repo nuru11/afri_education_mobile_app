@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:vector_academy/controllers/parent/parent_mode_controller.dart';
 import 'package:vector_academy/models/parent_link.dart';
+import 'package:vector_academy/utils/auth_guard.dart';
 import 'package:vector_academy/utils/snackbar_utils.dart';
 import 'package:vector_academy/views/parent/parent_request_sheet.dart';
 
@@ -67,6 +68,14 @@ class ParentDashboard extends StatelessWidget {
                   child: ListView(
                     padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
                     children: [
+                      _BuyForChildButton(
+                        childName: childName,
+                        onPressed: () {
+                          final phone = controller.link?.childPhone ?? '';
+                          if (phone.isEmpty) return;
+                          openLockedGiftCheckout(phone);
+                        },
+                      ),
                       if (controller.error != null)
                         Padding(
                           padding: const EdgeInsets.only(bottom: 12),
@@ -127,6 +136,31 @@ class ParentDashboard extends StatelessWidget {
     if (controller.error != null) {
       AppSnackbar.showError('Parent Mode', controller.error!);
     }
+  }
+}
+
+class _BuyForChildButton extends StatelessWidget {
+  const _BuyForChildButton({
+    required this.childName,
+    required this.onPressed,
+  });
+
+  final String childName;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: SizedBox(
+        width: double.infinity,
+        child: ElevatedButton.icon(
+          onPressed: onPressed,
+          icon: const Icon(Icons.shopping_bag_outlined),
+          label: Text('Buy for $childName'),
+        ),
+      ),
+    );
   }
 }
 

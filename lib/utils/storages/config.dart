@@ -16,6 +16,7 @@ class ConfigPreference {
       'asked_study_plan_exact_alarm_permission';
   static const String _pomodoroStateKey = 'pomodoro_state';
   static const String _parentModeKeyPrefix = 'parent_mode_enabled_';
+  static const String _appAudienceKey = 'app_audience';
 
   // Initialize Hive
   static Future<void> init() async {
@@ -113,4 +114,26 @@ class ConfigPreference {
   static Future<void> setParentModeEnabled(int userId, bool value) async {
     await _getBox().put('$_parentModeKeyPrefix$userId', value);
   }
+
+  /// `student` or `parent` after the first-launch choice. Null until chosen.
+  static AppAudience? getAppAudience() {
+    final value = _getBox().get(_appAudienceKey) as String?;
+    switch (value) {
+      case 'student':
+        return AppAudience.student;
+      case 'parent':
+        return AppAudience.parent;
+      default:
+        return null;
+    }
+  }
+
+  static Future<void> setAppAudience(AppAudience audience) async {
+    await _getBox().put(
+      _appAudienceKey,
+      audience == AppAudience.parent ? 'parent' : 'student',
+    );
+  }
 }
+
+enum AppAudience { student, parent }

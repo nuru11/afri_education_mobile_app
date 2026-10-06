@@ -6,6 +6,7 @@ import 'package:vector_academy/views/news/news_page.dart';
 import 'package:vector_academy/views/leaderboard/leaderboard_page.dart';
 import 'package:vector_academy/views/study_hub/study_hub_page.dart';
 import 'package:vector_academy/views/parent/parent_dashboard.dart';
+import 'package:vector_academy/views/parent/parent_shell.dart';
 import 'package:vector_academy/controllers/controllers.dart';
 
 class Home extends StatelessWidget {
@@ -30,6 +31,9 @@ class Home extends StatelessWidget {
         }
         if (parentMode.showDashboard) {
           return const ParentDashboard();
+        }
+        if (parentMode.showParentShell) {
+          return const ParentShell();
         }
         return GetBuilder<MainNavigationController>(
           builder: (controller) => PopScope(

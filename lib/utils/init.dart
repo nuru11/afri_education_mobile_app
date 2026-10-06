@@ -10,6 +10,7 @@ import 'package:vector_academy/services/notification_service.dart'
     as local_notif;
 import 'package:flutter_tex/flutter_tex.dart';
 import 'package:vector_academy/controllers/parent/parent_mode_controller.dart';
+import 'package:vector_academy/flavors/flavor_config.dart';
 
 Future<void> initialize() async {
   await TeXRenderingServer.start();
@@ -37,6 +38,7 @@ Future<void> initialize() async {
   Get.put(GradeService());
 
   await ConfigPreference.init();
+  await _keepExistingParentOnParentHome();
   Get.put(ParentModeController());
 
   // Register notification service (permissions requested in-context from Study Planner)
@@ -44,4 +46,13 @@ Future<void> initialize() async {
   Get.put(local_notif.LocalNotificationService());
 
   logger.i('Initilizing The application');
+}
+
+/// Accounts that already turned Parent Mode on skip the first-launch choice.
+Future<void> _keepExistingParentOnParentHome() async {
+  if (!FlavorConfig.supportsParentMode) return;
+  if (ConfigPreference.getAppAudience() != null) return;
+  final userId = Get.find<AuthService>().user.value?.id;
+  if (userId == null || !ConfigPreference.isParentModeEnabled(userId)) return;
+  await ConfigPreference.setAppAudience(AppAudience.parent);
 }

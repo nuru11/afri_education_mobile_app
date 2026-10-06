@@ -94,11 +94,11 @@ class _ParentLinkPageState extends State<ParentLinkPage> {
                   ),
                   const SizedBox(height: 24),
                   if (controller.link?.isPending == true)
-                    _PendingCard(controller: controller)
+                    ParentPendingCard(controller: controller)
                   else if (controller.link?.isAccepted == true)
                     _AcceptedCard(controller: controller)
                   else
-                    _RequestForm(
+                    ParentPhoneRequestForm(
                       controller: controller,
                       phoneController: _phoneController,
                       onSubmit: _submit,
@@ -117,8 +117,9 @@ class _ParentLinkPageState extends State<ParentLinkPage> {
   }
 }
 
-class _RequestForm extends StatelessWidget {
-  const _RequestForm({
+class ParentPhoneRequestForm extends StatelessWidget {
+  const ParentPhoneRequestForm({
+    super.key,
     required this.controller,
     required this.phoneController,
     required this.onSubmit,
@@ -163,8 +164,8 @@ class _RequestForm extends StatelessWidget {
   }
 }
 
-class _PendingCard extends StatelessWidget {
-  const _PendingCard({required this.controller});
+class ParentPendingCard extends StatelessWidget {
+  const ParentPendingCard({super.key, required this.controller});
 
   final ParentModeController controller;
 

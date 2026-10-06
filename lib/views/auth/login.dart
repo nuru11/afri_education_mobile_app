@@ -77,7 +77,10 @@ class Login extends StatelessWidget {
                     ),
                     TextButton(
                       onPressed: () {
-                        Get.toNamed(VIEWS.register.path);
+                        Get.toNamed(
+                          VIEWS.register.path,
+                          arguments: Get.arguments,
+                        );
                       },
                       child: Text(
                         'Register',

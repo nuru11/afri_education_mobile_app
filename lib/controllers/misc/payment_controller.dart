@@ -30,6 +30,8 @@ class PaymentController extends GetxController {
   File? selectedReceiptImage;
   String? referralCode;
   bool purchaseForSelf = true;
+  bool lockGiftRecipient = false;
+  String? _lockedGiftPhone;
   String recipientPhone = '';
   RecipientLookupStatus recipientLookupStatus = RecipientLookupStatus.idle;
   String? recipientLookupMessage;
@@ -54,19 +56,62 @@ class PaymentController extends GetxController {
   bool isCreatingPayment = false;
   User? _user;
 
+  bool get _openedAsLockedGift {
+    if (lockGiftRecipient) return true;
+    final args = Get.arguments;
+    return args is Map && args[lockRecipientArgKey] == true;
+  }
+
+  String? get _giftPhoneFromArguments {
+    if (_lockedGiftPhone != null && _lockedGiftPhone!.trim().isNotEmpty) {
+      return _lockedGiftPhone;
+    }
+    final args = Get.arguments;
+    if (args is! Map) return null;
+    final phone = args[giftPhoneArgKey];
+    if (phone is String && phone.trim().isNotEmpty) return phone;
+    return null;
+  }
+
+  void _loadPackagesForCurrentCheckout() {
+    if (lockGiftRecipient && recipientGradeId != null) {
+      loadPackages(gradeId: recipientGradeId, fullScreen: false);
+      return;
+    }
+    if (lockGiftRecipient || _openedAsLockedGift) return;
+    loadPackages();
+  }
+
+  void _startLockedGiftLookup() {
+    final phone = _giftPhoneFromArguments;
+    if (phone == null) return;
+    prepareLockedGift(phone);
+    final normalized = normalizeGiftPhone(phone);
+    final lookupStarted =
+        recipientPhone == normalized &&
+        (recipientLookupStatus == RecipientLookupStatus.loading ||
+            recipientLookupStatus == RecipientLookupStatus.found);
+    if (lookupStarted) return;
+    setRecipientPhone(phone);
+  }
+
   @override
   void onInit() async {
     super.onInit();
     _user = await HiveUserStorage().getUser();
     loadUserPayments();
-    loadPackages();
+    if (_openedAsLockedGift) {
+      _startLockedGiftLookup();
+    } else {
+      loadPackages();
+    }
 
     logger.i('User: $_user');
     HiveUserStorage().listen((event) {
       _user = event;
       loadPaymentMethods();
       loadUserPayments();
-      loadPackages();
+      _loadPackagesForCurrentCheckout();
     }, 'user');
   }
 
@@ -209,7 +254,47 @@ class PaymentController extends GetxController {
     return true;
   }
 
+  bool needsGiftLockSync({String? phone, required bool lock}) {
+    if (!lock || phone == null || phone.trim().isEmpty) {
+      return lockGiftRecipient;
+    }
+    final normalized = normalizeGiftPhone(phone);
+    return !lockGiftRecipient || _lockedGiftPhone != normalized;
+  }
+
+  void prepareLockedGift(String phone) {
+    final normalized = normalizeGiftPhone(phone);
+    lockGiftRecipient = true;
+    _lockedGiftPhone = normalized;
+    purchaseForSelf = false;
+    recipientPhone = normalized;
+    if (recipientPhoneController.text != normalized) {
+      recipientPhoneController.text = normalized;
+    }
+  }
+
+  void syncLockedGift({String? phone, required bool lock}) {
+    if (!lock || phone == null || phone.trim().isEmpty) {
+      if (!lockGiftRecipient) return;
+      lockGiftRecipient = false;
+      _lockedGiftPhone = null;
+      _resetGiftSelection();
+      update();
+      loadPackages(buyerGrade: true, fullScreen: false);
+      return;
+    }
+    final normalized = normalizeGiftPhone(phone);
+    prepareLockedGift(normalized);
+    final lookupInProgress =
+        recipientPhone == normalized &&
+        (recipientLookupStatus == RecipientLookupStatus.loading ||
+            recipientLookupStatus == RecipientLookupStatus.found);
+    if (lookupInProgress) return;
+    setRecipientPhone(normalized);
+  }
+
   void setPurchaseForSelf(bool forSelf) {
+    if (lockGiftRecipient && forSelf) return;
     purchaseForSelf = forSelf;
     if (forSelf) {
       _recipientDebounceTimer?.cancel();
@@ -247,6 +332,7 @@ class PaymentController extends GetxController {
     _clearRecipientDevices();
     _clearRecipientGrade();
     _packageLoadGeneration++;
+    isLoading = false;
     isLoadingGiftPackages = true;
     update();
     final phone = recipientPhone;
@@ -485,6 +571,7 @@ class PaymentController extends GetxController {
       if (fullScreen) {
         isLoading = true;
       } else {
+        isLoading = false;
         isLoadingGiftPackages = true;
       }
       update();

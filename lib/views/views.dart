@@ -37,9 +37,12 @@ export 'agent/agent_status_page.dart';
 export 'parent/parent_link_page.dart';
 export 'parent/parent_dashboard.dart';
 export 'parent/parent_request_sheet.dart';
+export 'parent/audience_picker_page.dart';
+export 'parent/parent_shell.dart';
 
 enum VIEWS {
   home('/home'),
+  audience('/audience'),
   login('/login'),
   register('/register'),
   forgotPassword('/forgotPassword'),
