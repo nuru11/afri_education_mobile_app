@@ -52,6 +52,8 @@ class PaymentController extends GetxController {
   Timer? _referralDebounceTimer;
 
   bool isLoading = false;
+  bool isLoadingPaymentMethods = false;
+  int _paymentMethodLoads = 0;
   bool isLoadingPayments = false;
   bool isCreatingPayment = false;
   User? _user;
@@ -102,6 +104,7 @@ class PaymentController extends GetxController {
     loadUserPayments();
     if (_openedAsLockedGift) {
       _startLockedGiftLookup();
+      loadPaymentMethods();
     } else {
       loadPackages();
     }
@@ -421,8 +424,11 @@ class PaymentController extends GetxController {
   }
 
   Future<void> loadPaymentMethods() async {
+    final coverPackageList = !lockGiftRecipient;
+    _paymentMethodLoads++;
     try {
-      isLoading = true;
+      isLoadingPaymentMethods = true;
+      if (coverPackageList) isLoading = true;
       update();
       final paymentMethods_ = await _paymentService.getPaymentMethods();
       paymentMethods = paymentMethods_;
@@ -435,7 +441,9 @@ class PaymentController extends GetxController {
         colorText: Colors.white,
       );
     } finally {
-      isLoading = false;
+      _paymentMethodLoads = (_paymentMethodLoads - 1).clamp(0, 1 << 30);
+      isLoadingPaymentMethods = _paymentMethodLoads > 0;
+      if (coverPackageList) isLoading = false;
       update();
     }
   }
@@ -615,6 +623,7 @@ class PaymentController extends GetxController {
       } else {
         isLoadingGiftPackages = false;
         update();
+        loadPaymentMethods();
       }
     }
   }

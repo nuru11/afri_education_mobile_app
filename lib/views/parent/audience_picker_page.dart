@@ -11,10 +11,6 @@ class AudiencePickerPage extends StatelessWidget {
   Future<void> _choose(AppAudience audience) async {
     final parentMode = Get.find<ParentModeController>();
     await parentMode.chooseAudience(audience);
-    if (audience == AppAudience.parent && !isCurrentUserAuthenticated) {
-      openParentRegistration(replace: true);
-      return;
-    }
     goToStartupRoute();
   }
 

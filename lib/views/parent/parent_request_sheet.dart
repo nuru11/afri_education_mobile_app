@@ -4,9 +4,11 @@ import 'package:vector_academy/controllers/parent/parent_mode_controller.dart';
 import 'package:vector_academy/flavors/flavor_config.dart';
 import 'package:vector_academy/models/parent_link.dart';
 import 'package:vector_academy/services/api/exceptions.dart';
+import 'package:vector_academy/services/notification_service.dart';
 import 'package:vector_academy/utils/snackbar_utils.dart';
 
 bool _promptedParentRequests = false;
+final Set<int> _notifiedParentLinkIds = <int>{};
 
 Future<void> maybePromptParentRequests({bool force = false}) async {
   if ((!force && _promptedParentRequests) || !FlavorConfig.supportsParentMode) {
@@ -17,6 +19,18 @@ Future<void> maybePromptParentRequests({bool force = false}) async {
   try {
     final incoming = await Get.find<ParentModeController>().loadIncoming();
     if (incoming.isEmpty) return;
+    if (Get.isRegistered<LocalNotificationService>()) {
+      final notifications = Get.find<LocalNotificationService>();
+      for (final link in incoming) {
+        if (!_notifiedParentLinkIds.add(link.id)) continue;
+        await notifications.showParentLinkRequest(
+          linkId: link.id,
+          title: 'Parent Mode request',
+          body:
+              '${link.parentName} (${link.parentPhone}) wants to view your learning progress. Open the app to accept or decline.',
+        );
+      }
+    }
     final context = Get.overlayContext ?? Get.context;
     if (context == null || !context.mounted) return;
     await showParentRequestSheet(context, incoming);

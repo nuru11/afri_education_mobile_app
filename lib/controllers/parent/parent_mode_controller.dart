@@ -4,6 +4,7 @@ import 'package:vector_academy/models/parent_link.dart';
 import 'package:vector_academy/services/api/exceptions.dart';
 import 'package:vector_academy/services/api/parent_mode.dart';
 import 'package:vector_academy/services/auth.dart';
+import 'package:vector_academy/utils/device/device.dart';
 import 'package:vector_academy/utils/storages/config.dart';
 
 class ParentModeController extends GetxController {
@@ -102,7 +103,7 @@ class ParentModeController extends GetxController {
           audience = AppAudience.parent;
           await ConfigPreference.setAppAudience(AppAudience.parent);
         }
-        overview = await _service.overview(link!.id);
+        overview = await _overviewFor(link!.id);
       } else {
         overview = null;
         if (modeEnabled) {
@@ -115,6 +116,79 @@ class ParentModeController extends GetxController {
     } finally {
       loading = false;
       bootstrapped = true;
+      update();
+    }
+  }
+
+  Future<String> _parentDeviceId(String phone) async {
+    final saved = ConfigPreference.getParentLinkDeviceId();
+    if (saved != null) return saved;
+    final device = await UserDevice.getDeviceInfo(phone);
+    return device.id;
+  }
+
+  Future<ParentOverview> _overviewFor(int linkId) async {
+    final phone = Get.find<AuthService>().user.value?.phoneNumber ?? '';
+    final deviceId = await _parentDeviceId(phone);
+    return _service.overview(linkId, deviceId: deviceId);
+  }
+
+  Future<bool> requestGuestLink({
+    required String childPhone,
+    required String parentName,
+    required String parentPhone,
+  }) async {
+    final child = normalizeParentPhone(childPhone);
+    final phone = normalizeParentPhone(parentPhone);
+    final name = parentName.trim();
+    if (!RegExp(r'^(7|9)\d{8}$').hasMatch(child) ||
+        !RegExp(r'^(7|9)\d{8}$').hasMatch(phone)) {
+      error = 'Enter a valid phone number.';
+      update();
+      return false;
+    }
+    if (name.isEmpty) {
+      error = 'Enter your name.';
+      update();
+      return false;
+    }
+    if (child == phone) {
+      error = 'Use a different phone number from your child.';
+      update();
+      return false;
+    }
+    submitting = true;
+    error = null;
+    update();
+    try {
+      final device = await UserDevice.getDeviceInfo(phone);
+      await ConfigPreference.setParentLinkDeviceId(device.id);
+      final result = await _service.guestRequest(
+        childPhone: child,
+        parentName: name,
+        parentPhone: phone,
+        deviceId: device.id,
+        appPackage: FlavorConfig.backendAppPackage,
+      );
+      final auth = Get.find<AuthService>();
+      await auth.saveAuthToken(result.auth.tokens);
+      await auth.saveUser(result.auth.user);
+      link = result.link;
+      audience = AppAudience.parent;
+      await ConfigPreference.setAppAudience(AppAudience.parent);
+      if (link?.isAccepted == true) {
+        modeEnabled = true;
+        await ConfigPreference.setParentModeEnabled(result.auth.user.id, true);
+        overview = await _overviewFor(link!.id);
+      } else {
+        overview = null;
+      }
+      return true;
+    } catch (e) {
+      error = ApiErrorMessage.from(e);
+      return false;
+    } finally {
+      submitting = false;
       update();
     }
   }
@@ -137,7 +211,7 @@ class ParentModeController extends GetxController {
         if (user != null) {
           await ConfigPreference.setParentModeEnabled(user.id, true);
         }
-        overview = await _service.overview(link!.id);
+        overview = await _overviewFor(link!.id);
       } else {
         overview = null;
       }
@@ -185,7 +259,7 @@ class ParentModeController extends GetxController {
     loading = true;
     update();
     try {
-      overview = await _service.overview(current.id);
+      overview = await _overviewFor(current.id);
       error = null;
     } catch (e) {
       error = ApiErrorMessage.from(e);
@@ -219,7 +293,7 @@ class ParentModeController extends GetxController {
     try {
       link = await _service.currentLink();
       if (link?.isAccepted == true) {
-        overview = await _service.overview(link!.id);
+        overview = await _overviewFor(link!.id);
       } else {
         overview = null;
         await leaveParentMode(updateUi: false);

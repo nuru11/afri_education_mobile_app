@@ -1300,51 +1300,7 @@ class _PaymentMethodPageState extends State<_PaymentMethodPage> {
               ),
               const SizedBox(height: 16),
 
-              Expanded(
-                child: RadioGroup<PaymentMethod>(
-                  groupValue: controller.selectedPaymentMethod,
-                  onChanged: (value) {
-                    if (value != null) {
-                      controller.changeSelectedPaymentMethod(value);
-                    }
-                  },
-                  child: ListView.builder(
-                    itemCount: controller.paymentMethods.length,
-                    itemBuilder: (context, index) {
-                      final method = controller.paymentMethods[index];
-                      final isSelected =
-                          controller.selectedPaymentMethod?.id == method.id;
-
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: isSelected
-                                ? Colors.blue.shade600
-                                : Colors.grey.shade300,
-                            width: isSelected ? 2 : 1,
-                          ),
-                        ),
-                        child: ListTile(
-                          leading: Radio<PaymentMethod>(
-                            value: method,
-                            activeColor: Colors.blue.shade600,
-                          ),
-                          title: Text(method.bankName),
-                          subtitle: Text(
-                            '${method.accountName} - ${method.accountNumber}',
-                          ),
-                          onTap: () {
-                            controller.changeSelectedPaymentMethod(method);
-                          },
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
+              Expanded(child: _buildPaymentMethodList(controller)),
 
               const SizedBox(height: 20),
 
@@ -1375,6 +1331,60 @@ class _PaymentMethodPageState extends State<_PaymentMethodPage> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildPaymentMethodList(PaymentController controller) {
+    if (controller.paymentMethods.isEmpty) {
+      if (controller.isLoadingPaymentMethods) {
+        return const Center(child: CircularProgressIndicator());
+      }
+      return const Center(
+        child: Text(
+          'No payment methods available',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 16),
+        ),
+      );
+    }
+
+    return RadioGroup<PaymentMethod>(
+      groupValue: controller.selectedPaymentMethod,
+      onChanged: (value) {
+        if (value != null) {
+          controller.changeSelectedPaymentMethod(value);
+        }
+      },
+      child: ListView.builder(
+        itemCount: controller.paymentMethods.length,
+        itemBuilder: (context, index) {
+          final method = controller.paymentMethods[index];
+          final isSelected = controller.selectedPaymentMethod?.id == method.id;
+
+          return Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: isSelected ? Colors.blue.shade600 : Colors.grey.shade300,
+                width: isSelected ? 2 : 1,
+              ),
+            ),
+            child: ListTile(
+              leading: Radio<PaymentMethod>(
+                value: method,
+                activeColor: Colors.blue.shade600,
+              ),
+              title: Text(method.bankName),
+              subtitle: Text('${method.accountName} - ${method.accountNumber}'),
+              onTap: () {
+                controller.changeSelectedPaymentMethod(method);
+              },
+            ),
+          );
+        },
       ),
     );
   }

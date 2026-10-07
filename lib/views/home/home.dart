@@ -7,6 +7,7 @@ import 'package:vector_academy/views/leaderboard/leaderboard_page.dart';
 import 'package:vector_academy/views/study_hub/study_hub_page.dart';
 import 'package:vector_academy/views/parent/parent_dashboard.dart';
 import 'package:vector_academy/views/parent/parent_shell.dart';
+import 'package:vector_academy/views/parent/parent_request_sheet.dart';
 import 'package:vector_academy/controllers/controllers.dart';
 
 class Home extends StatelessWidget {
@@ -35,7 +36,8 @@ class Home extends StatelessWidget {
         if (parentMode.showParentShell) {
           return const ParentShell();
         }
-        return GetBuilder<MainNavigationController>(
+        return ParentRequestResumeListener(
+          child: GetBuilder<MainNavigationController>(
           builder: (controller) => PopScope(
             canPop: false,
             child: Scaffold(
@@ -111,6 +113,7 @@ class Home extends StatelessWidget {
               ),
             ),
           ),
+        ),
         );
       },
     );
@@ -193,4 +196,39 @@ class Home extends StatelessWidget {
       ),
     );
   }
+}
+
+class ParentRequestResumeListener extends StatefulWidget {
+  const ParentRequestResumeListener({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  State<ParentRequestResumeListener> createState() =>
+      _ParentRequestResumeListenerState();
+}
+
+class _ParentRequestResumeListenerState extends State<ParentRequestResumeListener>
+    with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      maybePromptParentRequests(force: true);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }

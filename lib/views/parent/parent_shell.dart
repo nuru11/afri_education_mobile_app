@@ -18,11 +18,38 @@ class ParentShell extends StatefulWidget {
 
 class _ParentShellState extends State<ParentShell> {
   final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _studentPhoneController = TextEditingController();
+  final TextEditingController _parentNameController = TextEditingController();
+  final TextEditingController _parentPhoneController = TextEditingController();
+  var _guestStep = 0;
 
   @override
   void dispose() {
     _phoneController.dispose();
+    _studentPhoneController.dispose();
+    _parentNameController.dispose();
+    _parentPhoneController.dispose();
     super.dispose();
+  }
+
+  Future<void> _submitGuest(ParentModeController controller) async {
+    final ok = await controller.requestGuestLink(
+      childPhone: _studentPhoneController.text,
+      parentName: _parentNameController.text,
+      parentPhone: _parentPhoneController.text,
+    );
+    if (!mounted) return;
+    if (ok) {
+      final link = controller.link;
+      AppSnackbar.showSuccess(
+        'Request sent',
+        link?.isAccepted == true
+            ? '${link!.childName} is already linked.'
+            : 'Waiting for your child to accept on their phone.',
+      );
+    } else if (controller.error != null) {
+      AppSnackbar.showError('Parent Mode', controller.error!);
+    }
   }
 
   Future<void> _submit(ParentModeController controller) async {
@@ -76,8 +103,20 @@ class _ParentShellState extends State<ParentShell> {
             ],
           ),
           body: !signedIn
-              ? _SignedOutParent(
-                  onCreateAccount: openParentRegistration,
+              ? _GuestParentForm(
+                  step: _guestStep,
+                  studentPhoneController: _studentPhoneController,
+                  parentNameController: _parentNameController,
+                  parentPhoneController: _parentPhoneController,
+                  submitting: controller.submitting,
+                  error: controller.error,
+                  onContinue: () {
+                    setState(() => _guestStep = 1);
+                  },
+                  onBack: () {
+                    setState(() => _guestStep = 0);
+                  },
+                  onSubmit: () => _submitGuest(controller),
                   onUseAsStudent: () => _useAsStudent(controller),
                 )
               : RefreshIndicator(
@@ -147,24 +186,41 @@ class _ParentShellState extends State<ParentShell> {
   }
 }
 
-class _SignedOutParent extends StatelessWidget {
-  const _SignedOutParent({
-    required this.onCreateAccount,
+class _GuestParentForm extends StatelessWidget {
+  const _GuestParentForm({
+    required this.step,
+    required this.studentPhoneController,
+    required this.parentNameController,
+    required this.parentPhoneController,
+    required this.submitting,
+    required this.error,
+    required this.onContinue,
+    required this.onBack,
+    required this.onSubmit,
     required this.onUseAsStudent,
   });
 
-  final VoidCallback onCreateAccount;
+  final int step;
+  final TextEditingController studentPhoneController;
+  final TextEditingController parentNameController;
+  final TextEditingController parentPhoneController;
+  final bool submitting;
+  final String? error;
+  final VoidCallback onContinue;
+  final VoidCallback onBack;
+  final VoidCallback onSubmit;
   final VoidCallback onUseAsStudent;
 
   @override
   Widget build(BuildContext context) {
+    final askingForStudent = step == 0;
     return ListView(
       padding: const EdgeInsets.all(24),
       children: [
         Image.asset(FlavorConfig.logoAsset, height: 88),
         const SizedBox(height: 24),
         Text(
-          'Create your parent account',
+          askingForStudent ? 'Your child\'s phone' : 'Your name and phone',
           style: TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.bold,
@@ -173,16 +229,71 @@ class _SignedOutParent extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Text(
-          'Register with your own phone number. After that, enter your child\'s number and wait for them to accept. You can then see their exams and buy courses, exams, and plans for them.',
+          askingForStudent
+              ? 'Enter the phone number your child used to register. You do not need to create an account.'
+              : 'Enter your name and phone number. We will ask your child to accept before you can see their exams.',
           style: TextStyle(fontSize: 15, height: 1.4, color: Colors.grey[700]),
         ),
         const SizedBox(height: 24),
+        if (askingForStudent)
+          TextField(
+            controller: studentPhoneController,
+            keyboardType: TextInputType.phone,
+            decoration: const InputDecoration(
+              labelText: 'Child\'s phone number',
+              hintText: '9xxxxxxxx',
+              filled: true,
+              fillColor: Colors.white,
+              border: OutlineInputBorder(),
+            ),
+          )
+        else ...[
+          TextField(
+            controller: parentNameController,
+            textCapitalization: TextCapitalization.words,
+            decoration: const InputDecoration(
+              labelText: 'Your name',
+              filled: true,
+              fillColor: Colors.white,
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: parentPhoneController,
+            keyboardType: TextInputType.phone,
+            decoration: const InputDecoration(
+              labelText: 'Your phone number',
+              hintText: '9xxxxxxxx',
+              filled: true,
+              fillColor: Colors.white,
+              border: OutlineInputBorder(),
+            ),
+          ),
+        ],
+        if (error != null) ...[
+          const SizedBox(height: 12),
+          Text(error!, style: const TextStyle(color: Color(0xFFEF4444))),
+        ],
+        const SizedBox(height: 16),
         ElevatedButton(
-          onPressed: onCreateAccount,
-          child: const Text('Create account or log in'),
+          onPressed: submitting
+              ? null
+              : askingForStudent
+              ? onContinue
+              : onSubmit,
+          child: submitting
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : Text(askingForStudent ? 'Continue' : 'Send confirmation request'),
         ),
+        if (!askingForStudent)
+          TextButton(onPressed: submitting ? null : onBack, child: const Text('Back')),
         TextButton(
-          onPressed: onUseAsStudent,
+          onPressed: submitting ? null : onUseAsStudent,
           child: const Text('Use the app as a student'),
         ),
       ],

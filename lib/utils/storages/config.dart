@@ -17,6 +17,7 @@ class ConfigPreference {
   static const String _pomodoroStateKey = 'pomodoro_state';
   static const String _parentModeKeyPrefix = 'parent_mode_enabled_';
   static const String _appAudienceKey = 'app_audience';
+  static const String _parentLinkDeviceIdKey = 'parent_link_device_id';
 
   // Initialize Hive
   static Future<void> init() async {
@@ -126,6 +127,16 @@ class ConfigPreference {
       default:
         return null;
     }
+  }
+
+  static String? getParentLinkDeviceId() {
+    final value = _getBox().get(_parentLinkDeviceIdKey) as String?;
+    if (value == null || value.isEmpty) return null;
+    return value;
+  }
+
+  static Future<void> setParentLinkDeviceId(String deviceId) async {
+    await _getBox().put(_parentLinkDeviceIdKey, deviceId);
   }
 
   static Future<void> setAppAudience(AppAudience audience) async {

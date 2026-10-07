@@ -30,6 +30,8 @@ class LocalNotificationService extends GetxService {
   static const String channelDescription = 'Notifications for your study plans';
   static const String pomodoroChannelKey = 'pomodoro_channel';
   static const String challengeChannelKey = 'challenge_channel';
+  static const String parentChannelKey = 'parent_link_channel';
+  static const int _parentNotificationIdBase = 700000;
 
   static const int _planIdBase = 200000;
   static const int _pomodoroAlarmIdBase = 900010;
@@ -108,6 +110,17 @@ class LocalNotificationService extends GetxService {
           enableVibration: true,
           defaultRingtoneType: DefaultRingtoneType.Alarm,
           criticalAlerts: true,
+        ),
+        NotificationChannel(
+          channelKey: parentChannelKey,
+          channelName: 'Parent requests',
+          channelDescription: 'Asks you to accept or decline a parent link',
+          defaultColor: const Color(0xFF6366F1),
+          importance: NotificationImportance.High,
+          channelShowBadge: true,
+          playSound: true,
+          enableVibration: true,
+          defaultRingtoneType: DefaultRingtoneType.Notification,
         ),
       ],
     );
@@ -553,6 +566,28 @@ class LocalNotificationService extends GetxService {
         repeats: true,
         allowWhileIdle: true,
         preciseAlarm: preciseAlarm,
+      ),
+    );
+  }
+
+  Future<void> showParentLinkRequest({
+    required int linkId,
+    required String title,
+    required String body,
+  }) async {
+    final allowed = await AwesomeNotifications().isNotificationAllowed();
+    if (!allowed) {
+      await AwesomeNotifications().requestPermissionToSendNotifications();
+    }
+    await AwesomeNotifications().createNotification(
+      content: NotificationContent(
+        id: _parentNotificationIdBase + linkId,
+        channelKey: parentChannelKey,
+        title: title,
+        body: body,
+        notificationLayout: NotificationLayout.Default,
+        category: NotificationCategory.Social,
+        wakeUpScreen: true,
       ),
     );
   }
