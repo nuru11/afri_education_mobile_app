@@ -258,29 +258,37 @@ class _ExamDetailPageState extends State<ExamDetailPage> {
     QuestionMode mode, {
     bool resume = false,
   }) async {
-    List<Question> questionsToShow = _exam.questions;
-
-    if (mode == QuestionMode.exam && !resume) {
+    var questionsToShow = _exam.questions;
+    if (questionsToShow.isEmpty) {
+      questionsToShow = await _examStorage.getQuestions(_exam.id);
+    }
+    if (questionsToShow.isEmpty) {
       try {
         final user = await HiveUserStorage().getUser();
         if (user != null) {
           final device = await UserDevice.getDeviceInfo(user.phoneNumber);
-          final allQuestions = await _examService.getQuestions(
+          questionsToShow = await _examService.getQuestions(
             device.id,
             _exam.id,
           );
-          final filtered = allQuestions
-              .where((question) => !question.hasUserAnswered)
-              .toList();
-
-          if (filtered.isNotEmpty) {
-            questionsToShow = filtered;
-          } else {
-            return [];
-          }
         }
       } catch (e) {
-        logger.e('Failed to reload questions for exam mode: $e');
+        logger.e('Failed to load questions for exam start: $e');
+      }
+    }
+
+    if (mode == QuestionMode.exam && !resume && questionsToShow.isNotEmpty) {
+      final progress = await _examStorage.getProgress(_exam.id, 'exam');
+      if (progress != null) {
+        final answers = (progress['selected_answers'] as List?) ?? const [];
+        final unanswered = <Question>[];
+        for (var i = 0; i < questionsToShow.length; i++) {
+          final selected = i < answers.length ? answers[i] : null;
+          if (selected == null) {
+            unanswered.add(questionsToShow[i]);
+          }
+        }
+        return unanswered;
       }
     }
 
