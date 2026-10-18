@@ -9,8 +9,11 @@ This repo builds multiple store apps from one codebase using Flutter flavors.
 | `vector_academy` | Entrance Tricks | `com.vector_academy.app` | `com.vectoracademy.app` |
 | `exitexam` | Ethio Exit Exam | `com.ethioexitexam.app` | `com.ethioexitexam.app` |
 | `remedial` | Remedial Tricks | `com.remedialtricks.app` | `com.remedial_tricks.app` |
+| `ministry` | Ministry Tricks | `com.ministrytricks.app` | `com.ministrytricks.app` |
 
 Remedial backend `app_package` is `com.remedial_tricks.app` (same as iOS). Android store ID stays `com.remedialtricks.app`.
+
+Ministry backend `app_package` is `com.ministry_tricks.app`. Android and iOS store IDs stay `com.ministrytricks.app`.
 
 ## Run / build
 
@@ -19,11 +22,13 @@ Remedial backend `app_package` is `com.remedial_tricks.app` (same as iOS). Andro
 .\scripts\run.ps1 exitexam
 .\scripts\run.ps1 vector_academy
 .\scripts\run.ps1 remedial
+.\scripts\run.ps1 ministry
 
 # Release builds
 .\scripts\build.ps1 exitexam appbundle
 .\scripts\build.ps1 vector_academy apk
 .\scripts\build.ps1 remedial appbundle
+.\scripts\build.ps1 ministry appbundle
 ```
 
 Or directly:
@@ -33,6 +38,8 @@ flutter run --flavor exitexam --dart-define=FLAVOR=exitexam
 flutter build appbundle --flavor exitexam --dart-define=FLAVOR=exitexam
 flutter run --flavor remedial --dart-define=FLAVOR=remedial
 flutter build appbundle --flavor remedial --dart-define=FLAVOR=remedial
+flutter run --flavor ministry --dart-define=FLAVOR=ministry
+flutter build appbundle --flavor ministry --dart-define=FLAVOR=ministry
 ```
 
 ## Android signing
@@ -44,6 +51,7 @@ Release builds use the flavor-specific keystore (`productFlavors.signingConfig`)
 | `vector_academy` | `android/key.properties` | `upload-keystore_entrance.jks` |
 | `exitexam` | `android/key_exitexam.properties` | `upload-keystore_exitexam.jks` |
 | `remedial` | `android/key_remedial.properties` | `upload-keystore_remedial.jks` |
+| `ministry` | `android/key_ministry.properties` | `upload-keystore_ministry.jks` |
 
 1. Copy the matching `android/key_<flavor>.properties.example` to `android/key_<flavor>.properties` (except `vector_academy`, which uses `key.properties`)
 2. Fill in keystore credentials

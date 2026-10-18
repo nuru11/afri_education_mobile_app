@@ -30,6 +30,16 @@
         "remedial",
         "--dart-define=FLAVOR=remedial"
       ]
+    },
+    {
+      "name": "ministry (debug)",
+      "request": "launch",
+      "type": "dart",
+      "args": [
+        "--flavor",
+        "ministry",
+        "--dart-define=FLAVOR=ministry"
+      ]
     }
   ]
 }

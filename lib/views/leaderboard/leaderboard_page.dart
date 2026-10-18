@@ -492,13 +492,23 @@ class LeaderboardPage extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Success Stories',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
+              Row(
+                children: [
+                  const Expanded(
+                    child: Text(
+                      'Success Stories',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () => Get.to(() => const SuccessStoriesPage()),
+                    child: const Text('See all'),
+                  ),
+                ],
               ),
               const SizedBox(height: 10),
               ...stories.map((story) => _buildStoryTile(context, story)),

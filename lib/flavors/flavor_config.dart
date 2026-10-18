@@ -6,6 +6,8 @@ class FlavorValues {
     required this.logoAsset,
     required this.supportTelegramHandle,
     required this.supportTelegramUrl,
+    required this.supportPhoneNumber,
+    required this.supportEmail,
   });
 
   final String appTitle;
@@ -13,6 +15,8 @@ class FlavorValues {
   final String logoAsset;
   final String supportTelegramHandle;
   final String supportTelegramUrl;
+  final String supportPhoneNumber;
+  final String supportEmail;
 }
 
 const _flavorName = String.fromEnvironment(
@@ -27,20 +31,35 @@ const _flavors = <String, FlavorValues>{
     logoAsset: 'assets/images/logo.png',
     supportTelegramHandle: '@entrance_tricks_admin',
     supportTelegramUrl: 'https://t.me/entrance_tricks_admin',
+    supportPhoneNumber: '0920308061',
+    supportEmail: 'entrancetricks@gmail.com',
   ),
   'exitexam': FlavorValues(
     appTitle: 'Ethio Exit Exam',
     backendAppPackage: 'com.ethioexitexam.app',
     logoAsset: 'assets/images/logo_exitexam.png',
-    supportTelegramHandle: '@entrance_tricks_admin',
-    supportTelegramUrl: 'https://t.me/entrance_tricks_admin',
+    supportTelegramHandle: '@Ethio_ExitExam',
+    supportTelegramUrl: 'https://t.me/Ethio_ExitExam',
+    supportPhoneNumber: '0994311719',
+    supportEmail: 'Ethioexitexamhub@gmail.com',
   ),
   'remedial': FlavorValues(
     appTitle: 'Remedial Tricks',
     backendAppPackage: 'com.remedial_tricks.app',
     logoAsset: 'assets/images/logo_remedial.png',
-    supportTelegramHandle: '@Remedial_Tricks_Admin',
-    supportTelegramUrl: 'https://t.me/Remedial_Tricks_Admin',
+    supportTelegramHandle: '@remedial_tricks',
+    supportTelegramUrl: 'https://t.me/remedial_tricks_admin',
+    supportPhoneNumber: '0927052140',
+    supportEmail: 'remedialtricks@gmail.com',
+  ),
+  'ministry': FlavorValues(
+    appTitle: 'Ministry Tricks',
+    backendAppPackage: 'com.ministry_tricks.app',
+    logoAsset: 'assets/images/logo_ministry.png',
+    supportTelegramHandle: '@Ministry_tricks',
+    supportTelegramUrl: 'https://t.me/Ministry_tricks',
+    supportPhoneNumber: '0950478932',
+    supportEmail: 'Ministrytricks@gmail.com',
   ),
 };
 
@@ -62,6 +81,10 @@ class FlavorConfig {
   static String get supportTelegramHandle => current.supportTelegramHandle;
 
   static String get supportTelegramUrl => current.supportTelegramUrl;
+
+  static String get supportPhoneNumber => current.supportPhoneNumber;
+
+  static String get supportEmail => current.supportEmail;
 
   static const _parentModeFlavors = {'vector_academy', 'ministry'};
   static const _parentModePackages = {

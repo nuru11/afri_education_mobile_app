@@ -1,6 +1,6 @@
 param(
     [Parameter(Mandatory = $true, Position = 0)]
-    [ValidateSet("vector_academy", "exitexam", "remedial")]
+    [ValidateSet("vector_academy", "exitexam", "remedial", "ministry")]
     [string]$Flavor,
 
     [Parameter(Position = 1)]

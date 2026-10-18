@@ -58,7 +58,7 @@ class ReadingPlanTab extends StatelessWidget {
                       contentPadding: EdgeInsets.zero,
                       leading: const Icon(Icons.phone_outlined),
                       title: const Text('Phone'),
-                      subtitle: const Text(supportPhoneNumber),
+                      subtitle: Text(supportPhoneNumber),
                       onTap: () => _open(supportPhoneUrl, 'Phone'),
                     ),
                     TextField(

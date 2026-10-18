@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:vector_academy/config/support_config.dart';
 import 'package:vector_academy/flavors/flavor_config.dart';
 import 'package:vector_academy/utils/navigation_utils.dart';
 
@@ -471,8 +472,7 @@ class SupportPage extends StatelessWidget {
   }
 
   void _launchEmail() async {
-    const emailUrl = 'mailto:entrancetricks@gmail.com?subject=Support Request';
-    final uri = Uri.parse(emailUrl);
+    final uri = Uri.parse(supportEmailUrl);
 
     try {
       if (await canLaunchUrl(uri)) {
@@ -496,8 +496,7 @@ class SupportPage extends StatelessWidget {
   }
 
   void _launchPhone() async {
-    const phoneUrl = 'tel:0920308061';
-    final uri = Uri.parse(phoneUrl);
+    final uri = Uri.parse(supportPhoneUrl);
 
     try {
       if (await canLaunchUrl(uri)) {

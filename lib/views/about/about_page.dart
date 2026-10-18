@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:vector_academy/config/support_config.dart';
 import 'package:vector_academy/utils/navigation_utils.dart';
 import 'package:vector_academy/flavors/flavor_config.dart';
 
@@ -487,14 +488,14 @@ class _AboutPageState extends State<AboutPage> {
           _buildContactItem(
             icon: Icons.email_rounded,
             title: 'Email',
-            value: 'entrancetricks@gmail.com',
+            value: supportEmail,
             onTap: () => _launchEmail(),
           ),
 
           _buildContactItem(
             icon: Icons.phone_rounded,
             title: 'Phone',
-            value: '0920308061',
+            value: supportPhoneNumber,
             onTap: () => _launchPhone(),
           ),
 
@@ -633,8 +634,7 @@ class _AboutPageState extends State<AboutPage> {
   }
 
   void _launchEmail() async {
-    const emailUrl = 'mailto:entrancetricks@gmail.com?subject=Support Request';
-    final uri = Uri.parse(emailUrl);
+    final uri = Uri.parse(supportEmailUrl);
 
     try {
       if (await canLaunchUrl(uri)) {
@@ -658,8 +658,7 @@ class _AboutPageState extends State<AboutPage> {
   }
 
   void _launchPhone() async {
-    const phoneUrl = 'tel:0920308061';
-    final uri = Uri.parse(phoneUrl);
+    final uri = Uri.parse(supportPhoneUrl);
 
     try {
       if (await canLaunchUrl(uri)) {

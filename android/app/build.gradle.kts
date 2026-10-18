@@ -20,6 +20,7 @@ fun loadKeystoreProperties(fileName: String): Properties {
 val vectorKeystoreProperties = loadKeystoreProperties("key.properties")
 val exitexamKeystoreProperties = loadKeystoreProperties("key_exitexam.properties")
 val remedialKeystoreProperties = loadKeystoreProperties("key_remedial.properties")
+val ministryKeystoreProperties = loadKeystoreProperties("key_ministry.properties")
 
 android {
     namespace = "com.vector_academy.app"
@@ -74,6 +75,14 @@ android {
                 storePassword = remedialKeystoreProperties["storePassword"] as String
             }
         }
+        if (ministryKeystoreProperties.isNotEmpty()) {
+            create("ministryRelease") {
+                keyAlias = ministryKeystoreProperties["keyAlias"] as String
+                keyPassword = ministryKeystoreProperties["keyPassword"] as String
+                storeFile = ministryKeystoreProperties["storeFile"]?.let { file(it) }
+                storePassword = ministryKeystoreProperties["storePassword"] as String
+            }
+        }
     }
 
     flavorDimensions += "app"
@@ -95,6 +104,12 @@ android {
             applicationId = "com.remedialtricks.app"
             resValue("string", "app_name", "Remedial Tricks")
             signingConfigs.findByName("remedialRelease")?.let { signingConfig = it }
+        }
+        create("ministry") {
+            dimension = "app"
+            applicationId = "com.ministrytricks.app"
+            resValue("string", "app_name", "Ministry Tricks")
+            signingConfigs.findByName("ministryRelease")?.let { signingConfig = it }
         }
     }
 
