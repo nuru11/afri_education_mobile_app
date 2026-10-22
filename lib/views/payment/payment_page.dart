@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:vector_academy/controllers/controllers.dart';
 import 'package:vector_academy/models/models.dart';
 import 'package:vector_academy/components/components.dart';
+import 'package:vector_academy/services/api/file_download_util.dart';
 import 'package:vector_academy/services/services.dart';
 import 'package:vector_academy/utils/navigation_utils.dart';
 import 'package:vector_academy/utils/pricing.dart';
@@ -1207,6 +1208,34 @@ class PaymentPage extends StatelessWidget {
   }
 }
 
+Widget _paymentMethodLogo(PaymentMethod method) {
+  final raw = method.image?.trim() ?? '';
+  final fallback = Icon(
+    Icons.account_balance,
+    color: Colors.blue.shade600,
+    size: 28,
+  );
+
+  return Container(
+    width: 52,
+    height: 52,
+    alignment: Alignment.center,
+    padding: const EdgeInsets.all(4),
+    decoration: BoxDecoration(
+      color: Colors.grey.shade100,
+      borderRadius: BorderRadius.circular(8),
+    ),
+    clipBehavior: Clip.antiAlias,
+    child: raw.isEmpty
+        ? fallback
+        : Image.network(
+            FileDownloadUtil.resolveDownloadUrl(raw),
+            fit: BoxFit.contain,
+            errorBuilder: (context, error, stackTrace) => fallback,
+          ),
+  );
+}
+
 class _PaymentMethodPage extends StatefulWidget {
   final Package package;
   final PaymentController controller;
@@ -1373,12 +1402,13 @@ class _PaymentMethodPageState extends State<_PaymentMethodPage> {
               ),
             ),
             child: ListTile(
-              leading: Radio<PaymentMethod>(
+              leading: _paymentMethodLogo(method),
+              title: Text(method.bankName),
+              subtitle: Text('${method.accountName} - ${method.accountNumber}'),
+              trailing: Radio<PaymentMethod>(
                 value: method,
                 activeColor: Colors.blue.shade600,
               ),
-              title: Text(method.bankName),
-              subtitle: Text('${method.accountName} - ${method.accountNumber}'),
               onTap: () {
                 controller.changeSelectedPaymentMethod(method);
               },
