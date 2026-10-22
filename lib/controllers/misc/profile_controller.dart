@@ -39,6 +39,9 @@ class ProfileController extends GetxController {
   bool _isDeletingAccount = false;
   bool get isDeletingAccount => _isDeletingAccount;
 
+  bool _showAgentButton = false;
+  bool get showAgentButton => _showAgentButton;
+
   final TextEditingController _deleteConfirmationController =
       TextEditingController();
 
@@ -57,6 +60,7 @@ class ProfileController extends GetxController {
     loadUserData();
 
     loadGrades();
+    loadFeatureFlags();
 
     _authService.listenUser((event) {
       _user = event;
@@ -69,6 +73,7 @@ class ProfileController extends GetxController {
       if (event == InternetStatus.connected) {
         loadUserData();
         loadGrades();
+        loadFeatureFlags();
       }
     });
   }
@@ -108,6 +113,18 @@ class ProfileController extends GetxController {
     _currentGrade = user?.grade;
 
     _isLoading = false;
+    update();
+  }
+
+  Future<void> loadFeatureFlags() async {
+    try {
+      _showAgentButton = await FeatureFlagsService().showAgentButton(
+        backendAppPackage,
+      );
+    } catch (e) {
+      _showAgentButton = false;
+      logger.e(e);
+    }
     update();
   }
 

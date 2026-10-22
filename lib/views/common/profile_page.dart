@@ -227,26 +227,25 @@ class ProfilePage extends StatelessWidget {
 
             SizedBox(height: 40),
 
-            // Agent Section
-            Text(
-              'Become an Agent',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.grey[800],
+            if (controller.showAgentButton) ...[
+              Text(
+                'Become an Agent',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey[800],
+                ),
               ),
-            ),
-            SizedBox(height: 20),
-
-            _buildActionButton(
-              context,
-              Icons.business_center,
-              "Agent Program",
-              "Apply to become an agent and earn coins",
-              () => Get.toNamed(VIEWS.agentStatus.path),
-            ),
-
-            SizedBox(height: 40),
+              SizedBox(height: 20),
+              _buildActionButton(
+                context,
+                Icons.business_center,
+                "Agent Program",
+                "Apply to become an agent and earn coins",
+                () => Get.toNamed(VIEWS.agentStatus.path),
+              ),
+              SizedBox(height: 40),
+            ],
 
             // Action Buttons
             Text(

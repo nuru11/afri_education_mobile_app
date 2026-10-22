@@ -4,7 +4,7 @@ const authTokenStorage = 'authTokenStorage';
 const defaultApiURL = 'https://api.entrancetricks.com';
 
 /// Set to true for iOS App Store builds to require login on launch.
-const bool is_ios = false;
+const bool is_ios = true;
 
 /// Must match backend `app_package` (e.g. grades, branding). Set per flavor in
 /// [FlavorConfig].
