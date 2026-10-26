@@ -18,6 +18,7 @@ class ConfigPreference {
   static const String _parentModeKeyPrefix = 'parent_mode_enabled_';
   static const String _appAudienceKey = 'app_audience';
   static const String _parentLinkDeviceIdKey = 'parent_link_device_id';
+  static const String _showParentModeKey = 'show_parent_mode';
 
   // Initialize Hive
   static Future<void> init() async {
@@ -137,6 +138,17 @@ class ConfigPreference {
 
   static Future<void> setParentLinkDeviceId(String deviceId) async {
     await _getBox().put(_parentLinkDeviceIdKey, deviceId);
+  }
+
+  /// Null until the feature-flags request has succeeded at least once.
+  static bool? getCachedShowParentMode() {
+    final box = _getBox();
+    if (!box.containsKey(_showParentModeKey)) return null;
+    return box.get(_showParentModeKey) as bool?;
+  }
+
+  static Future<void> setCachedShowParentMode(bool value) async {
+    await _getBox().put(_showParentModeKey, value);
   }
 
   static Future<void> setAppAudience(AppAudience audience) async {

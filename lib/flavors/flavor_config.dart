@@ -92,8 +92,17 @@ class FlavorConfig {
     'com.ministry_tricks.app',
   };
 
-  /// Entrance today, and Ministry once that flavor uses its backend package.
-  static bool get supportsParentMode =>
+  /// Last admin value for this platform. Null until a successful response
+  /// or a saved value from a previous launch.
+  static bool? remoteParentModeEnabled;
+
+  static bool get _flavorAllowsParentMode =>
       _parentModeFlavors.contains(flavorName) ||
       _parentModePackages.contains(backendAppPackage);
+
+  /// Entrance and Ministry only, and only when the admin switch for this
+  /// platform is on. A missing saved value stays shown so a failed first
+  /// request does not skip parent mode. An explicit false hides it.
+  static bool get supportsParentMode =>
+      _flavorAllowsParentMode && (remoteParentModeEnabled ?? true);
 }

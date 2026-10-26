@@ -11,6 +11,7 @@ import 'package:vector_academy/services/notification_service.dart'
 import 'package:flutter_tex/flutter_tex.dart';
 import 'package:vector_academy/controllers/parent/parent_mode_controller.dart';
 import 'package:vector_academy/flavors/flavor_config.dart';
+import 'package:vector_academy/services/api/feature_flags.dart';
 
 Future<void> initialize() async {
   await TeXRenderingServer.start();
@@ -38,6 +39,7 @@ Future<void> initialize() async {
   Get.put(GradeService());
 
   await ConfigPreference.init();
+  await FeatureFlagsService().loadParentMode(FlavorConfig.backendAppPackage);
   await _keepExistingParentOnParentHome();
   Get.put(ParentModeController());
 
